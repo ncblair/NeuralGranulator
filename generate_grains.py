@@ -30,7 +30,7 @@ grains = np.concatenate(grains, axis = 0)
 
 # output dataset
 
-### IF YOU WANT TO WRITE NUMPY ARRAY TO DISK
+### IF YOU WANT TO WRITE NUMPY ARRAY TO DISK, (num_grains x GRAIN_LEN)
 np.save(os.path.join(OUTPUT_FOLDER, "grains.npy"), grains)
 
 ### IF YOU WANT TO WRITE WAV FILES TO DISK:
