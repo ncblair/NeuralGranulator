@@ -8,7 +8,7 @@ import soundfile as sf
 
 PATH = os.path.dirname(os.path.abspath(__file__))
 AUDIO_FOLDER = os.path.join(PATH, "INPUT")
-OUTPUT_FOLDER = os.path.join(PATH, "OUTPUT")
+OUTPUT_FOLDER = os.path.join(PATH, "DATA")
 
 
 SR = 16000 #khz
@@ -31,7 +31,7 @@ grains = np.concatenate(grains, axis = 0)
 # output dataset
 
 ### IF YOU WANT TO WRITE NUMPY ARRAY TO DISK, (num_grains x GRAIN_LEN)
-np.save(os.path.join(OUTPUT_FOLDER, "grains.npy"), grains)
+# np.save(os.path.join(OUTPUT_FOLDER, "grains.npy"), grains)
 
 ### IF YOU WANT TO WRITE WAV FILES TO DISK:
-# [sf.write(os.path.join(OUTPUT_FOLDER, f"{i:0>5d}.wav"), w, SR, "PCM_32") for i, w in enumerate(grains)]
+[sf.write(os.path.join(OUTPUT_FOLDER, f"{i:0>5d}.wav"), w, SR, "PCM_32") for i, w in enumerate(grains)]
