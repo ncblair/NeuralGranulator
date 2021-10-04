@@ -15,11 +15,15 @@ from model import GrainVAE
 # CONSTANTS
 PATH = os.path.dirname(os.path.abspath(__file__))
 DATA_PATH = os.path.join(PATH, "DATA", "grains.npy")
-MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model.pt")
+MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model2.pt")
+CONTINUE=True
 EPOCHS = 1000
-BATCH_SIZE = 16
+BATCH_SIZE = 512
 SR = 16000
 DTYPE = torch.cuda.FloatTensor
+LOG_EPOCHS = 10
+USE_CUDA = True
+
 
 # init dataset
 data = np.load(DATA_PATH)
@@ -47,15 +51,24 @@ dataloader = DataLoader(data,
 						pin_memory=True)
 
 # init model
-model = GrainVAE(grain_length)
+model = GrainVAE(grain_length, use_cuda = USE_CUDA)
+if USE_CUDA:
+	device = torch.device("cuda")
+else:
+	device = torch.device("cpu")
+model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
 model.train()
-model.cuda()
+
+if USE_CUDA:
+	model.cuda()
 
 # init optimizer
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+optimizer = optim.Adam(model.parameters(), lr=.001)
 
 # TRAIN LOOP
-for epoch in tqdm(range(EPOCHS)):
+losses = []
+pbar = tqdm(range(EPOCHS))
+for epoch in pbar:
 
 	# Go through batches
 	for x in iter(dataloader):
@@ -70,10 +83,15 @@ for epoch in tqdm(range(EPOCHS)):
 		optimizer.zero_grad()
 		loss.backward()
 		loss = loss.data
+		losses += [loss.detach().cpu()]
+		if len(losses) > LOG_EPOCHS:
+			losses = losses[1:]
 
+		optimizer.step()
 		#CONSIDER IMPLEMENTING GRADIENT CLIPPING HERE (LOOK THAT UP)
 
 		#LOG TRAINING HERE
+	pbar.set_description("Loss %s" % np.mean(losses))
 
 # Save model
-torch.save(model, MODEL_PATH)
+torch.save(model.state_dict(), MODEL_PATH)

@@ -9,7 +9,11 @@ import soundfile as sf
 PATH = os.path.dirname(os.path.abspath(__file__))
 AUDIO_FOLDER = os.path.join(PATH, "INPUT")
 OUTPUT_FOLDER = os.path.join(PATH, "DATA")
+SILENCE_CUTOFF = 0.05
 
+# Note: works best on input audio files with uniformly spaced info
+def is_not_silent(audio_file):
+    return (audio_file.max() > SILENCE_CUTOFF)
 
 SR = 16000 #khz
 GRAIN_LEN = int(0.1 * SR) # samples
@@ -28,10 +32,19 @@ grains = [np.reshape(w[:(w.shape[0]//GRAIN_LEN)*GRAIN_LEN], (w.shape[0]//GRAIN_L
 # add grains from different audio files to same list
 grains = np.concatenate(grains, axis = 0)
 
+# throwaway quiet grains
+final_grains = []
+for g in grains:
+	if is_not_silent(g):
+		final_grains.append(librosa.util.normalize(g))
+
+print(f"{float(len(final_grains))/len(grains)} of grains are viable for the data set, {len(final_grains)} to be exact.")
+
 # output dataset
 
 ### IF YOU WANT TO WRITE NUMPY ARRAY TO DISK, (num_grains x GRAIN_LEN)
-# np.save(os.path.join(OUTPUT_FOLDER, "grains.npy"), grains)
+# np.save(os.path.join(OUTPUT_FOLDER, "grains.npy"), final_grains)
 
 ### IF YOU WANT TO WRITE WAV FILES TO DISK:
-[sf.write(os.path.join(OUTPUT_FOLDER, f"{i:0>5d}.wav"), w, SR, "PCM_32") for i, w in enumerate(grains)]
+[sf.write(os.path.join(OUTPUT_FOLDER, f"{i:0>5d}.wav"), w, SR, "PCM_32") for i, w in enumerate(final_grains)]
+

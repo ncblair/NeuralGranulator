@@ -25,21 +25,24 @@ audio --> wavenet encoder --> latent space --> wavenet decoder --> audio
 ###
 
 class GrainVAE(nn.Module):
-	def __init__(self, grain_length, dtype=torch.cuda.FloatTensor):
+	def __init__(self, grain_length, use_cuda=True):
 		super(GrainVAE, self).__init__()
 
 		self.grain_length = grain_length
-		self.h_dim = 512 # hidden dimension
-		self.l_dim = 32 # latent dimension
+		self.h_dim = 2000 # hidden dimension
+		self.l_dim = 64 # latent dimension
 		self.hidden_layers = 3
 		self.sr = 16000
-		self.dtype = dtype
+		self.use_cuda = use_cuda
 
 		# encoder layers
 		self.fc1 = nn.Linear(self.grain_length, self.h_dim)
 		self.hidden_encoders = []
 		for i in range(self.hidden_layers):
-			self.hidden_encoders.append(nn.Linear(self.h_dim, self.h_dim).cuda())
+			if self.use_cuda:
+				self.hidden_encoders.append(nn.Linear(self.h_dim, self.h_dim).cuda())
+			else:
+				self.hidden_encoders.append(nn.Linear(self.h_dim, self.h_dim))
 
 		# go from encoder output to latent space
 		self.fc_mu = nn.Linear(self.h_dim, self.l_dim)
@@ -49,7 +52,10 @@ class GrainVAE(nn.Module):
 		self.fc2 = nn.Linear(self.l_dim, self.h_dim)
 		self.hidden_decoders = []
 		for i in range(self.hidden_layers):
-			self.hidden_decoders.append(nn.Linear(self.h_dim, self.h_dim).cuda())
+			if self.use_cuda:
+				self.hidden_decoders.append(nn.Linear(self.h_dim, self.h_dim).cuda())
+			else:
+				self.hidden_decoders.append(nn.Linear(self.h_dim, self.h_dim))
 		self.fc3 = nn.Linear(self.h_dim, self.grain_length)
 
 		self.log_scale = nn.Parameter(torch.Tensor([0.0]))
