@@ -29,8 +29,8 @@ class GrainVAE(nn.Module):
 		super(GrainVAE, self).__init__()
 
 		self.grain_length = grain_length
-		self.h_dim = 512 # hidden dimension
-		self.l_dim = 32 # latent dimension
+		self.h_dim = 2000 # hidden dimension
+		self.l_dim = 64 # latent dimension
 		self.hidden_layers = 3
 		self.sr = 16000
 		self.dtype = dtype
