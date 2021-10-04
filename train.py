@@ -15,10 +15,16 @@ from model import GrainVAE
 # CONSTANTS
 PATH = os.path.dirname(os.path.abspath(__file__))
 DATA_PATH = os.path.join(PATH, "DATA", "grains.npy")
+<<<<<<< HEAD
 MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model2.pt")
 CONTINUE=True
 EPOCHS = 1000
 BATCH_SIZE = 512
+=======
+MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model.pt")
+EPOCHS = 2000
+BATCH_SIZE = 16
+>>>>>>> 6eb77a63e30f15c7fa52d992ed53869ac4397eef
 SR = 16000
 DTYPE = torch.cuda.FloatTensor
 LOG_EPOCHS = 10

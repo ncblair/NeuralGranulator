@@ -12,7 +12,11 @@ from model import GrainVAE
 
 # CONSTANTS
 PATH = os.path.dirname(os.path.abspath(__file__))
+<<<<<<< HEAD
 MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model2.pt")
+=======
+MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model.pt")
+>>>>>>> 6eb77a63e30f15c7fa52d992ed53869ac4397eef
 AUDIO_OUT_FOL = os.path.join(PATH, "OUTPUT")
 DATA_PATH = os.path.join(PATH, "DATA", "grains.npy")
 EPOCHS = 10
@@ -44,14 +48,28 @@ if USE_CUDA:
 # get random latent vector
 zeros = torch.zeros(BATCH_SIZE, model.l_dim)
 ones = torch.ones(BATCH_SIZE, model.l_dim)
+<<<<<<< HEAD
 latent_vector = torch.distributions.Normal(zeros, ones).rsample()
 
 if USE_CUDA:
 	latent_vector.cuda()
+=======
+latent_vector = torch.distributions.Normal(zeros, ones).rsample().cuda()
+>>>>>>> 6eb77a63e30f15c7fa52d992ed53869ac4397eef
 
 # get model nsgt out
 model_out = model.decoder(latent_vector)
 
+<<<<<<< HEAD
+=======
+# Prepare inverse NSGT transform
+scale = nsgt.MelScale(20, 22050, 24)
+grain = np.load(DATA_PATH)[0]
+transform = nsgt.NSGT(scale, SR, len(grain), real=True, matrixform=True, reducedform=False)
+example_nsgt = transform.forward(grain)
+nsgt_shape = np.array(example_nsgt).shape
+
+>>>>>>> 6eb77a63e30f15c7fa52d992ed53869ac4397eef
 # put output of model back into complex domain
 model_out = model_out.cpu().detach().numpy()
 complex_out = np.zeros((BATCH_SIZE, model_out.shape[1]//2)).astype(np.cdouble)
