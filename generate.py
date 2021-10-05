@@ -1,21 +1,18 @@
 import os
 
 import numpy as np
-from tqdm import tqdm
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 import nsgt
 import soundfile as sf
 
 from model import GrainVAE
+
 
 # CONSTANTS
 PATH = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model2.pt")
 AUDIO_OUT_FOL = os.path.join(PATH, "OUTPUT")
 DATA_PATH = os.path.join(PATH, "DATA", "grains.npy")
-EPOCHS = 10
 BATCH_SIZE = 16
 SR = 16000
 USE_CUDA = False

@@ -3,33 +3,30 @@ import os
 import numpy as np
 from tqdm import tqdm
 import torch
-import torch.optim as optim
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.autograd import Variable
 from torch.utils.data import TensorDataset, DataLoader
 import nsgt
+import soundfile as sf
 
 from model import GrainVAE
 
+
 # CONSTANTS
 PATH = os.path.dirname(os.path.abspath(__file__))
-DATA_PATH = os.path.join(PATH, "DATA", "grains.npy")
 MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model2.pt")
-CONTINUE=True
-EPOCHS = 1000
-BATCH_SIZE = 512
+EMBEDDINGS_OUT_FOL = os.path.join(PATH, "EMBEDDINGS")
+DATA_PATH = os.path.join(PATH, "DATA", "grains.npy")
+BATCH_SIZE = 16
 SR = 16000
-LOG_EPOCHS = 10
-USE_CUDA = True
-if USE_CUDA:
-	DTYPE = torch.cuda.FloatTensor
-else:
-	DTYPE = torch.FloatTensor
+USE_CUDA = False
 
+# Make the output folder if it doesn't exist
+if (not os.path.exists(EMBEDDINGS_OUT_FOL)):
+	os.makedirs(EMBEDDINGS_OUT_FOL)
 
 # init dataset
 data = np.load(DATA_PATH)
+
+# init transform
 scale = nsgt.MelScale(20, 22050, 24)
 transform = nsgt.NSGT(scale, SR, data.shape[1], real=True, matrixform=True, reducedform=False)
 
@@ -49,52 +46,37 @@ grain_length = data.shape[1]
 data = TensorDataset(data)
 dataloader = DataLoader(data,
 						batch_size=BATCH_SIZE,
-						shuffle=True,
+						shuffle=False,
 						num_workers=8,
-						pin_memory=True)
+						pin_memory=USE_CUDA)
 
-# init model
+# load model
 model = GrainVAE(grain_length, use_cuda = USE_CUDA)
 if USE_CUDA:
 	device = torch.device("cuda")
 else:
 	device = torch.device("cpu")
 model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
-model.train()
-
+model.eval()
 if USE_CUDA:
 	model.cuda()
 
-# init optimizer
-optimizer = optim.Adam(model.parameters(), lr=.001)
 
-# TRAIN LOOP
-losses = []
-pbar = tqdm(range(EPOCHS))
-for epoch in pbar:
+# Run Model on Dataset
+latents = []
+for x in tqdm(iter(dataloader)):
+	# # Get batch (variable on GPU)
+	x = x[0]
+	if USE_CUDA:
+		x = x.cuda()
 
-	# Go through batches
-	for x in iter(dataloader):
-		# # Get batch (variable on GPU)
-		# x = Variable(data[i: i + BATCH_SIZE])
-		x = Variable(x[0]).type(DTYPE)
-		
-		# Run model
-		loss = model.train_step(x)
+	# encode x to get mu and std
+	mu, log_var = model.encoder(x)
+	std = torch.exp(log_var/2)
 
-		# Optimize model
-		optimizer.zero_grad()
-		loss.backward()
-		loss = loss.data
-		losses += [loss.detach().cpu()]
-		if len(losses) > LOG_EPOCHS:
-			losses = losses[1:]
+	# sample z from normal
+	q = torch.distributions.Normal(mu, std)
+	latents.append(np.array(q.sample().detach().cpu()))
 
-		optimizer.step()
-		#CONSIDER IMPLEMENTING GRADIENT CLIPPING HERE (LOOK THAT UP)
-
-		#LOG TRAINING HERE
-	pbar.set_description("Loss %s" % np.mean(losses))
-
-# Save model
-torch.save(model.state_dict(), MODEL_PATH)
+latents = np.concatenate(latents)
+np.save(os.path.join(EMBEDDINGS_OUT_FOL, "latents.npy"), latents)
