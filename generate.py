@@ -25,10 +25,10 @@ transform = nsgt.NSGT(scale, SR, len(grain), real=True, matrixform=True, reduced
 example_nsgt = transform.forward(grain)
 nsgt_shape = np.array(example_nsgt).shape
 # get grain length
-grain_length = nsgt_shape[0] * nsgt_shape[1] * 2 # times 2 for complex number
+nsgt_length = nsgt_shape[0] * nsgt_shape[1] * 2 # times 2 for complex number
 
 # load model
-model = GrainVAE(grain_length, use_cuda = USE_CUDA)
+model = GrainVAE(nsgt_length, use_cuda = USE_CUDA)
 if USE_CUDA:
 	device = torch.device("cuda")
 else:
@@ -41,7 +41,7 @@ if USE_CUDA:
 # get random latent vector
 zeros = torch.zeros(BATCH_SIZE, model.l_dim)
 ones = torch.ones(BATCH_SIZE, model.l_dim)
-latent_vector = torch.distributions.Normal(zeros, ones).rsample()
+latent_vector = torch.distributions.Normal(zeros, ones).sample()
 
 if USE_CUDA:
 	latent_vector.cuda()
@@ -50,10 +50,7 @@ if USE_CUDA:
 model_out = model.decoder(latent_vector)
 
 # put output of model back into complex domain
-model_out = model_out.cpu().detach().numpy()
-complex_out = np.zeros((BATCH_SIZE, model_out.shape[1]//2)).astype(np.cdouble)
-complex_out.real = model_out[:, :model_out.shape[1]//2]
-complex_out.imag = model_out[:, model_out.shape[1]//2:]
+complex_out = model.to_complex_repr(model_out)
 
 # write each output in batch separately to file
 for i in range(BATCH_SIZE):

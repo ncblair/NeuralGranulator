@@ -16,6 +16,7 @@ Training VAE:
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
 
 
 ###
@@ -121,3 +122,11 @@ class GrainVAE(nn.Module):
 		kl = (log_qzx - log_pz)
 		kl = kl.sum(-1)
 		return kl
+
+	def to_complex_repr(self, decoder_out):
+		# put output of decoder back into complex domain
+		decoder_out = decoder_out.cpu().detach().numpy()
+		complex_out = np.zeros((decoder_out.shape[0], decoder_out.shape[1]//2)).astype(np.cdouble)
+		complex_out.real = decoder_out[:, :decoder_out.shape[1]//2]
+		complex_out.imag = decoder_out[:, decoder_out.shape[1]//2:]
+		return complex_out
