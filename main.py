@@ -9,6 +9,7 @@ import soundfile as sf
 import pyaudio
 
 from model import GrainVAE
+from granulator import Granulator
 
 PATH = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model2.pt")
@@ -18,6 +19,7 @@ SCREEN_SIZE = 500
 SCREEN_COLOR = (255, 255, 255)
 USE_CUDA = False
 SR = 16000
+BIT_WIDTH = 4
 
 # Get latent data
 latent_data = np.load(EMBEDDINGS_PATH)
@@ -28,6 +30,7 @@ pca.fit(latent_data)
 
 # Prepare inverse NSGT transform
 grain = np.load(DATA_PATH)[0]
+grain_length = len(grain)
 scale = nsgt.MelScale(20, 22050, 24)
 transform = nsgt.NSGT(scale, SR, len(grain), real=True, matrixform=True, reducedform=False)
 example_nsgt = transform.forward(grain)
@@ -45,10 +48,6 @@ model.eval()
 if USE_CUDA:
 	model.cuda()
 
-# Initialize PyAudio
-p = pyaudio.PyAudio()
-stream = p.open(format = p.get_format_from_width(1), channels = 1, rate = SR, output = True)
-
 # Initialize PyGame
 pygame.init()
 
@@ -56,6 +55,12 @@ pygame.init()
 screen = pygame.display.set_mode([SCREEN_SIZE, SCREEN_SIZE])
 screen.fill(SCREEN_COLOR)
 pygame.display.flip()
+
+# Init Granulator
+gran = Granulator()
+gran.replace_grain(np.zeros(grain_length))
+gran.init_audio_stream(SR, BIT_WIDTH)
+gran.start_audio_stream()
 
 # Run PyGame Loop
 running = True
@@ -82,13 +87,9 @@ while running:
 
 			# get audio from nsgt inverse transform
 			audio_out = transform.backward(nsgt_out)
-			print(mouse_pos)
-			print(z)
-			print(audio_out)
-			stream.write(audio_out)
-stream.stop_stream()
-stream.close()
-p.terminate()
+			gran.replace_grain(audio_out)
+
+gran.close_audio_stream()
 
 # Done! Time to quit.
 pygame.quit()

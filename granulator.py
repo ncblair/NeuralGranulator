@@ -25,7 +25,7 @@ class Granulator:
 
 	def close_audio_stream(self):
 		self.stream.stop_stream()
-		stream.close()
+		self.stream.close()
 		pya.terminate()
 	
 	def callback(self, in_data, frame_count, time_info, status):
@@ -42,22 +42,22 @@ class Granulator:
 
 
 ##### Testing stuff
-import time
+# import time
 
-SR = 16000 #khz
-GRAIN_LEN = 1600 # samples
-FREQ = 220
-BIT_WIDTH = 4
-# generate sine array
-samples = np.arange(GRAIN_LEN)
-sine = np.sin(2 * np.pi * FREQ * samples / SR)
+# SR = 16000 #khz
+# GRAIN_LEN = 1600 # samples
+# FREQ = 220
+# BIT_WIDTH = 4
+# # generate sine array
+# samples = np.arange(GRAIN_LEN)
+# sine = np.sin(2 * np.pi * FREQ * samples / SR)
 
-# initialize granulator
-gran = Granulator()
-gran.replace_grain(sine)
+# # initialize granulator
+# gran = Granulator()
+# gran.replace_grain(sine)
 
-gran.init_audio_stream(SR, BIT_WIDTH)
-gran.start_audio_stream()
+# gran.init_audio_stream(SR, BIT_WIDTH)
+# gran.start_audio_stream()
 
-while gran.stream.is_active():
-   time.sleep(0.1)
+# while gran.stream.is_active():
+#    time.sleep(0.1)
