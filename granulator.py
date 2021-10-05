@@ -1,5 +1,5 @@
 import pyaudio
-import time
+import numpy as np
 
 # http://people.csail.mit.edu/hubert/pyaudio/docs/
 
@@ -7,18 +7,18 @@ import time
 
 class Granulator:
 
-	def __init__(self, sample_rate):
-		self.sampleRate = sample_rate
+	def __init__(self):
 		self.prevGrain = []
 		self.currentGrain = []
+		self.counter = 0
 	
-	def add_grain(self, grain):
+	def replace_grain(self, grain):
 		self.prevGrain = self.currentGrain
 		self.currentGrain = grain
 	
-	def init_audio_stream(self):
+	def init_audio_stream(self, sample_rate, bit_width):
 		self.pya = pyaudio.PyAudio()
-		self.stream = self.pya.open(format=self.pya.get_format_from_width(width=1), channels=1, rate=self.sampleRate, output=True, stream_callback=self.callback)
+		self.stream = self.pya.open(format=self.pya.get_format_from_width(width=bit_width), channels=1, rate=sample_rate, output=True, stream_callback=self.callback)
 	
 	def start_audio_stream(self):
 		self.stream.start_stream()
@@ -29,32 +29,35 @@ class Granulator:
 		pya.terminate()
 	
 	def callback(self, in_data, frame_count, time_info, status):
-		# TODO TODO TODO, send out duplicates of grain till it fits in `frame_count`
-		data = np.zeros(frame_count) # SAVE ur ears (self.currentGrain * 0.000)
-		return (data, pyaudio.paContinue) # TODO: understand paContinue
+		# TODO TODO TODO, make this work pureley with array operations
+		data = np.zeros(frame_count, dtype="float32")
+		count = 0
+		for i in range(self.counter, self.counter + frame_count):
+			data[count] = self.currentGrain[i % len(self.currentGrain)]
+			count += 1
+
+		self.counter = (self.counter + frame_count) % len(self.currentGrain)
+
+		return (data, pyaudio.paContinue)
 
 
 ##### Testing stuff
-import numpy as np
-import os
-import soundfile as sf
-
+import time
 
 SR = 16000 #khz
-GRAIN_LEN = 1024 # samples
+GRAIN_LEN = 1600 # samples
 FREQ = 220
+BIT_WIDTH = 4
 # generate sine array
 samples = np.arange(GRAIN_LEN)
 sine = np.sin(2 * np.pi * FREQ * samples / SR)
 
 # initialize granulator
+gran = Granulator()
+gran.replace_grain(sine)
 
-gran = Granulator(SR)
-gran.add_grain(sine)
-gran.init_audio_stream()
+gran.init_audio_stream(SR, BIT_WIDTH)
 gran.start_audio_stream()
 
 while gran.stream.is_active():
-    time.sleep(0.1)
-
-#sf.write(os.path.join("~/Desktop/", "0.wav"), sine, SR, "PCM_16")
+   time.sleep(0.1)
