@@ -9,6 +9,7 @@ import nsgt
 import torch
 import soundfile as sf
 import pyaudio
+import threading
 import colorsys
 from scipy.ndimage.filters import gaussian_filter
 
@@ -25,6 +26,7 @@ SCREEN_COLOR = (255, 255, 255)
 USE_CUDA = False
 SR = 16000
 BIT_WIDTH = 4
+CHANNELS = 1
 
 # Get latent data
 latent_data = np.load(EMBEDDINGS_PATH)
@@ -54,6 +56,12 @@ model.eval()
 if USE_CUDA:
 	model.cuda()
 
+# Init Granulator
+gran = Granulator()
+gran.replace_grain(np.zeros(grain_length))
+gran.init_audio_stream(SR, BIT_WIDTH, CHANNELS)
+gran.init_midi()
+
 # Initialize PyGame
 pygame.init()
 
@@ -66,13 +74,6 @@ circle_size = SCREEN_SIZE/50
 # circle_size = circle_size_mean
 # circle_size_variance = SCREEN_SIZE / 400
 z = torch.zeros(1, latent_dim)
-
-# Init Granulator
-gran = Granulator()
-gran.replace_grain(np.zeros(grain_length))
-gran.init_audio_stream(SR, BIT_WIDTH)
-gran.start_audio_stream()
-gran.init_midi()
 
 def get_latent_vector(pos):
 	# get corresponding latent vector
@@ -95,6 +96,7 @@ def update_audio(z):
 	# normalize audio to help prevent clipping
 	audio_out = audio_out / np.max(np.abs(audio_out))
 	gran.replace_grain(audio_out)
+
 
 def draw_background_circles(z):
 	"""
@@ -129,6 +131,8 @@ def distort(surface, blur = .25):
 	surface.blit(distorted, (0, 0))
 
 # Start Audio
+gran.start_audio_stream()
+
 circle_pos = np.array([SCREEN_SIZE/2, SCREEN_SIZE/2])
 z = get_latent_vector(circle_pos)
 update_audio(z)
@@ -159,24 +163,6 @@ while running:
 		circle_pos = mouse_pos
 		z = get_latent_vector(circle_pos)
 		update_audio(z)
-
-
-	# # if midi in
-	if gran.midi_input is not None and gran.midi_input.poll():
-		# if event.type == pygame.midi.MIDIIN:
-		midi_events = gran.midi_input.read(10)
-		# convert them into pygame events.
-		midi_evs = pygame.midi.midis2events(midi_events, gran.midi_input.device_id)
-
-		for m_e in midi_evs:
-			if m_e.status == 144:
-				note = m_e.data1
-				gran.note_on(note)
-
-			if m_e.status == 128:
-				note = m_e.data1
-				gran.note_off(note)
-
 
 	transformed_screen = pygame.transform.scale(screen,(WINDOW_SIZE, WINDOW_SIZE))
 	win.blit(transformed_screen, (0, 0))

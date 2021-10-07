@@ -1,1 +1,6 @@
+MODELS/
+DATA/
+EMBEDDINGS/
+__pycache__/
+
 *.DS_Store

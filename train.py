@@ -59,7 +59,10 @@ if USE_CUDA:
 	device = torch.device("cuda")
 else:
 	device = torch.device("cpu")
-model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
+
+if CONTINUE:
+	model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
+
 model.train()
 
 if USE_CUDA:
