@@ -5,9 +5,8 @@ import pygame
 from sklearn.decomposition import PCA
 import numpy as np
 import nsgt
-import torch
+import torch #1.2.0
 import soundfile as sf
-import pyaudio
 import colorsys
 from scipy.ndimage.filters import gaussian_filter
 
@@ -54,14 +53,14 @@ model.eval()
 if USE_CUDA:
 	model.cuda()
 
+# Initialize PyGame
+pygame.init()
+
 # Init Granulator
 gran = Granulator()
 gran.replace_grain(np.zeros(grain_length))
 gran.init_audio_stream(SR, BIT_WIDTH, CHANNELS)
 gran.init_midi()
-
-# Initialize PyGame
-pygame.init()
 
 # Set up the drawing window
 win = pygame.display.set_mode([WINDOW_SIZE, WINDOW_SIZE])
