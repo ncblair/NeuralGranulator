@@ -2,14 +2,12 @@ import os
 import math
 
 import pygame
-import pygame.midi
 from sklearn.decomposition import PCA
 import numpy as np
 import nsgt
 import torch
 import soundfile as sf
 import pyaudio
-import threading
 import colorsys
 from scipy.ndimage.filters import gaussian_filter
 
@@ -168,9 +166,6 @@ while running:
 	win.blit(transformed_screen, (0, 0))
 		
 	pygame.display.flip()
-
-
-gran.close_audio_stream()
 
 # Done! Time to quit.
 pygame.quit()

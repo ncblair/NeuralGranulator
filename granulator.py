@@ -8,7 +8,7 @@ import rtmidi.midiutil
 # https://github.com/khalidtouch/XigmaLessons/blob/6d95e1961ce86a8258e398f00411b37ad5bc80bf/PYTHON/Music_Player_App/pygame/tests/midi_test.py
 # https://stackoverflow.com/questions/31674416/python-realtime-audio-streaming-with-pyaudio-or-something-else
 
-class OnMidiInput(object):
+class OnMidiInput():
 	def __init__(self, port, granulator):
 		self.port = port
 		self.gran = granulator
