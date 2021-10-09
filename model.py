@@ -61,9 +61,10 @@ class GrainVAE(nn.Module):
 
 		self.log_scale = nn.Parameter(torch.Tensor([0.0]))
 
-	def train_step(self, x):
+	def train_step(self, x, beta):
 		"""
 		x is an input grain batch, batch_size x grain_length
+		beta is the regularizer from Beta-VAE
 		"""
 
 		# encode x to get mu and std
@@ -80,7 +81,7 @@ class GrainVAE(nn.Module):
 		# Get Reconstruction Loss
 		reconstruction_loss = self.reconstruction_loss(x_hat, x)
 		kl_loss = self.kl_divergence_loss(z, mu, std)
-		elbo = (kl_loss - reconstruction_loss).mean()
+		elbo = (beta*kl_loss - reconstruction_loss).mean()
 
 		return elbo
 

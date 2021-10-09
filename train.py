@@ -15,18 +15,24 @@ from model import GrainVAE
 # CONSTANTS
 PATH = os.path.dirname(os.path.abspath(__file__))
 DATA_PATH = os.path.join(PATH, "DATA", "grains.npy")
-MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model2.pt")
-CONTINUE=True
-EPOCHS = 1000
+MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model_beta.pt")
+CONTINUE=False
+CONTINUE = CONTINUE and os.path.exists(MODEL_PATH)
+EPOCHS = 4000
 BATCH_SIZE = 512
 SR = 16000
 LOG_EPOCHS = 10
+MAX_BETA = 2.0
 USE_CUDA = True
 if USE_CUDA:
 	DTYPE = torch.cuda.FloatTensor
 else:
 	DTYPE = torch.FloatTensor
 
+if CONTINUE:
+	warmup_period = 0
+else:
+	warmup_period = EPOCHS/2
 
 # init dataset
 data = np.load(DATA_PATH)
@@ -76,6 +82,9 @@ losses = []
 pbar = tqdm(range(EPOCHS))
 for epoch in pbar:
 
+	# Get Beta regularizer (increase linearly from 0 to max_beta during warmup_period)
+	beta = (epoch / EPOCHS) * MAX_BETA if epoch < warmup_period else MAX_BETA
+
 	# Go through batches
 	for x in iter(dataloader):
 		# # Get batch (variable on GPU)
@@ -83,7 +92,7 @@ for epoch in pbar:
 		x = Variable(x[0]).type(DTYPE)
 		
 		# Run model
-		loss = model.train_step(x)
+		loss = model.train_step(x, beta)
 
 		# Optimize model
 		optimizer.zero_grad()
