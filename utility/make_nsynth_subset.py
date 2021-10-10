@@ -4,12 +4,30 @@ import scandir
 import copy
 import random
 import math
-from shutil import copyfile
+
+import numpy as np
+import librosa
+import soundfile as sf
+
+from scipy import signal
 
 PATH = os.getcwd()
 
 AMOUNT_OF_FILES = 25000
 MAX_NUM_FILES = 305979
+
+WINDOW = True
+SR = 16000 #khz
+GRAIN_SEC = 0.1
+GRAIN_LEN = int(GRAIN_SEC * SR) # sample
+CHUNK_RANGE = 0.25  # RANGES FROM 0 to 1 where 1 means we chunk all of a sound file, 
+                    # 0.5 is chunking half the sound file and so on
+NP_OUT = True
+SF_OUT = False
+
+window = 1
+if WINDOW:
+	window = signal.tukey(GRAIN_LEN)
 
 if len(sys.argv) != 3:
 	print('Invalid number of arguments\nUsage: python filer_nsynth_set <nsynth-train folder to have filtered> <output folder>\n------------------')
@@ -63,8 +81,7 @@ instr_names = {\
             'reed' : copy.deepcopy(fam),
             'string' : copy.deepcopy(fam),
             'synth_lead' : copy.deepcopy(fam),
-            'vocal' : copy.deepcopy(fam),
-            'total' :copy.deepcopy(fam)}
+            'vocal' : copy.deepcopy(fam)}
 
 print("START GRABBING NAMES")
 for root, dirs, files in scandir.walk(INPUT_FOLDER):
@@ -81,19 +98,18 @@ for root, dirs, files in scandir.walk(INPUT_FOLDER):
 
 # Get a subset of the files that is subset_percent, copy all those files
 
-instr_names_copy = {\
-            'bass': copy.deepcopy(fam),
-            'brass' : copy.deepcopy(fam),
-            'flute' : copy.deepcopy(fam),
-            'guitar' : copy.deepcopy(fam),
-            'keyboard' : copy.deepcopy(fam),
-            'mallet' : copy.deepcopy(fam),
-            'organ' : copy.deepcopy(fam),
-            'reed' : copy.deepcopy(fam),
-            'string' : copy.deepcopy(fam),
-            'synth_lead' : copy.deepcopy(fam),
-            'vocal' : copy.deepcopy(fam),
-            'total' :copy.deepcopy(fam)}
+instr_names_subset = {\
+            'bass': [],
+            'brass' : [],
+            'flute' : [],
+            'guitar' : [],
+            'keyboard' : [],
+            'mallet' : [],
+            'organ' : [],
+            'reed' : [],
+            'string' : [],
+            'synth_lead' : [],
+            'vocal' : []}
 
 print("START SAMPLING")
 for instrument in instr_names:
@@ -103,15 +119,42 @@ for instrument in instr_names:
             continue
         if len(instr_names[instrument][fams]) == 1 and instr_names[instrument][fams][0] == None:
             continue
-        instr_names_copy[instrument][fams] = random.sample(instr_names[instrument][fams],math.floor((subset_percent) * instr_stats[instrument][count]))
+        instr_names_subset[instrument] += random.sample(instr_names[instrument][fams],math.floor((subset_percent) * instr_stats[instrument][count]))
         count += 1
 
-print("START COPYING")
-for instrument in instr_names_copy:
-    for fams in instr_names_copy[instrument]:
-        for file in instr_names_copy[instrument][fams]:
-            copyfile(os.path.join(INPUT_FOLDER,file), os.path.join(OUTPUT_FOLDER,file))
+print("START CHUNKING")
 
+for instrument in instr_names_subset:
+    # import audio mono 16khz
+    print(f"Start Loading in '{instrument}' Files...")
+    if len(instr_names_subset[instrument]) < 1:
+        continue
+
+    wavs, rates = zip(*[librosa.load(os.path.join(INPUT_FOLDER, f), sr=SR) \
+        for f in instr_names_subset[instrument]])
+    print(f"End Loading in '{instrument}' Files...")
+
+    print(f"Start Chunking '{instrument}' Files...")
+    grains = []
+    for w in wavs:
+        w = np.concatenate((w, np.zeros((GRAIN_LEN - (w.shape[0] % GRAIN_LEN)))), axis=0) # zero padding
+        grains += [g * window for g in np.split(w,w.shape[0]//GRAIN_LEN)[:math.floor((w.shape[0]//GRAIN_LEN)*CHUNK_RANGE)]]
+    print(f"End Chunking '{instrument}' Files...")
+    
+    print(f"Start Outputting '{instrument}' Files...")
+
+    if NP_OUT:
+        np.save(os.path.join(OUTPUT_FOLDER, f"{instrument}-{int(GRAIN_SEC * 1000)}ms-grains.npy"), grains)
+    
+    if SF_OUT:
+        sf_folder = os.path.join(OUTPUT_FOLDER,f"{instrument}-{int(GRAIN_SEC * 1000)}ms-grains")
+        os.mkdir(os.path.join(sf_folder))
+        [sf.write(os.path.join(sf_folder, f"{i:0>5d}.wav"), w, SR, "PCM_16") for i, w in enumerate(grains)]
+
+    print(f"End Outputting '{instrument}' Files...")
+
+
+        
 
 
 
