@@ -27,7 +27,8 @@ class OnMidiInput():
 
 MAX_GRAIN_HISTORY = 10
 OVERLAP = 0.9
-NUM_OVERLAPS = 3
+NUM_OVERLAPS = 4
+OVERLAP_INTERVALS = 1 / 3
 class GrainHistory:
 	def __init__(self):
 		self.history = deque(maxlen=MAX_GRAIN_HISTORY)
@@ -35,40 +36,76 @@ class GrainHistory:
 		self.index_grain = 0
 
 	def add_grain(self, grain):
-		self.history.append(grain)
-
-	# def get_grain_overlap(self, size):
-	# 	buffer = np.zeros(size)
-	# 	is_curr_grain
+		# first element is the index counter of the grain
+		self.history.append((0,grain))
 
 	def get_grain(self, size):
-		start_overlap = math.floor(len(self.current_grain) *(1 - OVERLAP))
+		buffer = np.zeros(size)
 		is_curr_grain_dead = False
-		buffer = []
-		if len(self.history) < 1: 
-			self.history.append(self.current_grain)
-		overlap_buffer_count = 0
-		for i in range(size):
-			if self.index_grain + i > len(self.current_grain) - 1:
-				is_curr_grain_dead = True
-				buffer.append(self.history[0][overlap_buffer_count])
-				overlap_buffer_count += 1
-			elif self.index_grain + i > start_overlap and self.index_grain + i < len(self.current_grain):
-				buffer.append(self.current_grain[self.index_grain+i] + self.history[0][overlap_buffer_count])
-				overlap_buffer_count += 1
-			else:
-				buffer.append(self.current_grain[self.index_grain + i])
-		
-		if is_curr_grain_dead:
-			self.index_grain = overlap_buffer_count
-			# Only append if buffer is non-zero
-			if self.current_grain.any():
-				self.history.append(self.current_grain)
-			self.current_grain = self.history.popleft()
-		else:
-			self.index_grain += size
+		start_overlap = math.floor(len(self.current_grain) *(1 - OVERLAP))
 
+		if NUM_OVERLAPS > len(self.history):
+			return buffer
+
+		overlap_grains = []
+		for i in range(NUM_OVERLAPS):
+			overlap_grains.append(self.history[i])
+
+		offset = 0
+		how_much = size - offset
+		count = 0
+		for grain in overlap_grains:
+			far = None
+			index_grain = grain[0]
+			if index_grain + how_much > len(grain[1]):
+				far = len(grain[1])
+			else:
+				far = index_grain + how_much
+			diff = len(buffer[offset:]) - len(grain[1][index_grain:far])
+			buffer[offset:] += (grain[1][index_grain:far])
+
+			offset += math.floor(OVERLAP_INTERVALS * len(buffer)) /# should be grain len, BUT HOW
+			how_much = size - offset
+			count += 1
+			index_grain = far
+
+			if far == len(grain[1]):
+				# equivalenetly, self.history.rotate(-1)
+				g = self.history.popleft()
+				g[0] = 0
+				self.history.append(g)
+				
 		return buffer
+
+
+	# def get_grain(self, size):
+	# 	start_overlap = math.floor(len(self.current_grain) *(1 - OVERLAP))
+	# 	is_curr_grain_dead = False
+	# 	buffer = []
+	# 	if len(self.history) < 1: 
+	# 		self.history.append(self.current_grain)
+	# 	overlap_buffer_count = 0
+	# 	for i in range(size):
+	# 		if self.index_grain + i > len(self.current_grain) - 1:
+	# 			is_curr_grain_dead = True
+	# 			buffer.append(self.history[0][overlap_buffer_count])
+	# 			overlap_buffer_count += 1
+	# 		elif self.index_grain + i > start_overlap and self.index_grain + i < len(self.current_grain):
+	# 			buffer.append(self.current_grain[self.index_grain+i] + self.history[0][overlap_buffer_count])
+	# 			overlap_buffer_count += 1
+	# 		else:
+	# 			buffer.append(self.current_grain[self.index_grain + i])
+		
+	# 	if is_curr_grain_dead:
+	# 		self.index_grain = overlap_buffer_count
+	# 		# Only append if buffer is non-zero
+	# 		if self.current_grain.any():
+	# 			self.history.append(self.current_grain)
+	# 		self.current_grain = self.history.popleft()
+	# 	else:
+	# 		self.index_grain += size
+
+	# 	return buffer
 		
 
 
