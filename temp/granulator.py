@@ -25,34 +25,85 @@ class OnMidiInput():
 		if midi_type == 128:
 			self.gran.note_off(midi_note)
 
-MAX_GRAIN_HISTORY = 10
+MAX_GRAIN_HISTORY = 2
 OVERLAP = 0.9
-NUM_OVERLAPS = 3
+NUM_OVERLAPS = 8
+OVERLAP_INTERVALS = 1.0 / NUM_OVERLAPS
 class GrainHistory:
 	def __init__(self):
 		self.history = deque(maxlen=MAX_GRAIN_HISTORY)
-		self.current_grain = np.zeros(4800)
+		self.current_grain = np.zeros(1600)
 		self.index_grain = 0
 
 	def add_grain(self, grain):
-		self.history.append(grain)
+		# first element is the index counter of the grain
+		self.history.append([0,grain])
 
-	# def get_grain_overlap(self, size):
-	# 	buffer = []
+	#TODO, not working as expected. what are you even trying to do?
+	# BIG LOGIC ERROR, you need to do number of overlaps per grainm rather than per block
+	def get_grain_2(self, size):
+		buffer = np.zeros(size)
+		is_curr_grain_dead = False
+		start_overlap = math.floor(len(self.current_grain) *(1 - OVERLAP))
+
+		if NUM_OVERLAPS > len(self.history):
+			return buffer
+
+		overlap_grains = []
+		for i in range(NUM_OVERLAPS):
+			overlap_grains.append(self.history[i])
+
+		offset = 0
+		how_much = size - offset
+		count = 0
+		for grain in overlap_grains:
+			far = None
+			index_grain = grain[0]
+			if index_grain + how_much > len(grain[1]):
+				far = len(grain[1])
+			else:
+				far = index_grain + how_much
+			diff = len(buffer[offset:]) - len(grain[1][index_grain:far])
+			# print(len(buffer[offset:]), len(grain[1][index_grain:far]))
+			output = None
+			if diff > 0:
+				(np.concatenate(grain[1][index_grain:far],np.zeros(diff)))
+			else:
+				output = grain[1][index_grain:far]
+			buffer[offset:] += output
+
+			offset += math.floor(OVERLAP_INTERVALS * len(grain[1]))
+			how_much = size - offset
+			count += 1
+			grain[0] = far
+			if diff != len(grain[1]):
+				# equivalenetly, self.history.rotate(-1)
+				# print("here")
+				g = self.history.popleft()
+				g[0] = 0
+				self.history.append(g)
+
+			if how_much < 0:
+				break
+				
+		return buffer
+
+
 	def get_grain(self, size):
 		start_overlap = math.floor(len(self.current_grain) *(1 - OVERLAP))
 		is_curr_grain_dead = False
-		buffer = []
-		if len(self.history) < 1: 
-			self.history.append(self.current_grain)
+		buffer = [0] * size
+		if len(self.history) < 1:
+			return buffer
+
 		overlap_buffer_count = 0
 		for i in range(size):
 			if self.index_grain + i > len(self.current_grain) - 1:
 				is_curr_grain_dead = True
-				buffer.append(self.history[0][overlap_buffer_count])
+				buffer.append(self.history[0][1][overlap_buffer_count])
 				overlap_buffer_count += 1
 			elif self.index_grain + i > start_overlap and self.index_grain + i < len(self.current_grain):
-				buffer.append(self.current_grain[self.index_grain+i] + self.history[0][overlap_buffer_count])
+				buffer.append(self.current_grain[self.index_grain+i] + self.history[0][1][overlap_buffer_count])
 				overlap_buffer_count += 1
 			else:
 				buffer.append(self.current_grain[self.index_grain + i])
@@ -61,12 +112,17 @@ class GrainHistory:
 			self.index_grain = overlap_buffer_count
 			# Only append if buffer is non-zero
 			if self.current_grain.any():
-				self.history.append(self.current_grain)
-			self.current_grain = self.history.popleft()
+				self.history.append([0,self.current_grain])
+			self.current_grain = self.history.popleft()[1]
 		else:
 			self.index_grain += size
 
 		return buffer
+	
+	def get_grain_overlap(self,size):
+		output = self.get_grain_2(size) #+ self.get_grain_2(size) 
+		return output
+
 		
 
 
@@ -149,57 +205,3 @@ class Granulator:
 		
 
 		return (data, pyaudio.paContinue)
-
-
-        # def add_grain(self, grain):
-        #         # first element is the index counter of the grain
-        #         self.history.append([0,grain])
-
-        # #TODO, not working as expected. what are you even trying to do?
-        # # BIG LOGIC ERROR, you need to do number of overlaps per grainm rather than per block
-        # def get_grain_2(self, size):
-        #         buffer = np.zeros(size)
-        #         is_curr_grain_dead = False
-        #         start_overlap = math.floor(len(self.current_grain) *(1 - OVERLAP))
-
-        #         if NUM_OVERLAPS > len(self.history):
-        #                 return buffer
-
-        #         overlap_grains = []
-        #         for i in range(NUM_OVERLAPS):
-        #                 overlap_grains.append(self.history[i])
-
-        #         offset = 0
-        #         how_much = size - offset
-        #         count = 0
-        #         for grain in overlap_grains:
-        #                 far = None
-        #                 index_grain = grain[0]
-        #                 if index_grain + how_much > len(grain[1]):
-        #                         far = len(grain[1])
-        #                 else:
-        #                         far = index_grain + how_much
-        #                 diff = len(buffer[offset:]) - len(grain[1][index_grain:far])
-        #                 # print(len(buffer[offset:]), len(grain[1][index_grain:far]))
-        #                 output = None
-        #                 if diff > 0:
-        #                         (np.concatenate(grain[1][index_grain:far],np.zeros(diff)))
-        #                 else:
-        #                         output = grain[1][index_grain:far]
-        #                 buffer[offset:] += output
-
-        #                 offset += math.floor(OVERLAP_INTERVALS * len(grain[1]))
-        #                 how_much = size - offset
-        #                 count += 1
-        #                 grain[0] = far
-        #                 if diff != len(grain[1]):
-        #                         # equivalenetly, self.history.rotate(-1)
-        #                         # print("here")
-        #                         g = self.history.popleft()
-        #                         g[0] = 0
-        #                         self.history.append(g)
-
-        #                 if how_much < 0:
-        #                         break
-
-        #         return buffer
