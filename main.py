@@ -9,6 +9,7 @@ import torch #1.2.0
 import soundfile as sf
 import colorsys
 from scipy.ndimage.filters import gaussian_filter
+from scipy.signal import tukey
 
 from model import GrainVAE
 from granulator import Granulator
@@ -91,7 +92,10 @@ def update_audio(z):
 	audio_out = transform.backward(nsgt_out) 
 
 	# normalize audio to help prevent clipping
-	audio_out = audio_out / np.max(np.abs(audio_out))
+	audio_out = audio_out / np.max(np.abs(audio_out)) / 2
+
+	# windowing?
+	audio_out *= tukey(len(audio_out))
 	gran.replace_grain(audio_out)
 
 
