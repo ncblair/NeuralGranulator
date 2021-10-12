@@ -1,6 +1,6 @@
 librosa==0.8.1
+numpy==1.19.2
 nsgt==0.18
-numpy
 PyAudio==0.2.11
 pygame==2.0.0
 python-rtmidi==1.4.9
