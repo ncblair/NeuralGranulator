@@ -18,11 +18,11 @@ DATA_PATH = os.path.join(PATH, "DATA", "grains.npy")
 MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model_beta.pt")
 CONTINUE=False
 CONTINUE = CONTINUE and os.path.exists(MODEL_PATH)
-EPOCHS = 4000
+EPOCHS = 1000
 BATCH_SIZE = 512
 SR = 16000
 LOG_EPOCHS = 10
-MAX_BETA = 2.0
+MAX_BETA = 4.0
 USE_CUDA = True
 if USE_CUDA:
 	DTYPE = torch.cuda.FloatTensor
@@ -48,6 +48,8 @@ for grain in data:
 	data_imag = data_transformed.imag
 	data_temp.append(np.concatenate([data_real, data_imag]))
 data = np.array(data_temp)
+
+import pdb; pdb.set_trace()
 
 # convert data to Tensorflow DataLoader
 data = torch.Tensor(data)

@@ -81,6 +81,7 @@ class GrainVAE(nn.Module):
 		# Get Reconstruction Loss
 		reconstruction_loss = self.reconstruction_loss(x_hat, x)
 		kl_loss = self.kl_divergence_loss(z, mu, std)
+		#print(reconstruction_loss.mean(), kl_loss.mean())
 		elbo = (beta*kl_loss - reconstruction_loss).mean()
 
 		return elbo
@@ -105,7 +106,8 @@ class GrainVAE(nn.Module):
 
 		# measure prob of seeing image under p(x|z)
 		log_pxz = dist.log_prob(x)
-		return log_pxz.sum(dim=(1))
+		log_pxz = log_pxz.sum(dim=(1)) # sum across output channel
+		return log_pxz
 
 	def kl_divergence_loss(self, z, mu, std):
 		# --------------------------
