@@ -1,0 +1,14 @@
+librosa==0.8.1
+nsgt==0.18
+numpy
+PyAudio==0.2.11
+pygame==2.0.0
+python-rtmidi==1.4.9
+rtmidi==2.3.4
+scikit-learn==1.0
+scipy==1.7.1
+sounddevice==0.4.2
+SoundFile==0.10.3
+torch==1.2.0
+torchvision==0.4.0a0+6b959ee
+tqdm==4.62.3
