@@ -32,7 +32,7 @@ class GrainVAE(nn.Module):
 		self.grain_length = grain_length
 		self.h_dim = 2000 # hidden dimension
 		self.l_dim = 64 # latent dimension
-		self.hidden_layers = 3
+		self.hidden_layers = 10
 		self.sr = 16000
 		self.use_cuda = use_cuda
 

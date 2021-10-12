@@ -18,8 +18,8 @@ DATA_PATH = os.path.join(PATH, "DATA", "grains.npy")
 MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model_beta.pt")
 CONTINUE=False
 CONTINUE = CONTINUE and os.path.exists(MODEL_PATH)
-EPOCHS = 1000
-BATCH_SIZE = 512
+EPOCHS = 2000
+BATCH_SIZE = 1024
 SR = 16000
 LOG_EPOCHS = 10
 MAX_BETA = 4.0
@@ -49,8 +49,6 @@ for grain in data:
 	data_temp.append(np.concatenate([data_real, data_imag]))
 data = np.array(data_temp)
 
-import pdb; pdb.set_trace()
-
 # convert data to Tensorflow DataLoader
 data = torch.Tensor(data)
 grain_length = data.shape[1]
@@ -77,7 +75,7 @@ if USE_CUDA:
 	model.cuda()
 
 # init optimizer
-optimizer = optim.Adam(model.parameters(), lr=.001)
+optimizer = optim.Adam(model.parameters(), lr=.0001)
 
 # TRAIN LOOP
 losses = []
