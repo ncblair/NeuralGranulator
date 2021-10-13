@@ -13,11 +13,12 @@ from scipy.signal import tukey
 
 from model import GrainVAE
 from granulator import Granulator
+from utils import load_data
 
 PATH = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model2.pt")
+MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model_beta.pt")
 EMBEDDINGS_PATH = os.path.join(PATH, "EMBEDDINGS", "latents.npy")
-DATA_PATH = os.path.join(PATH, "DATA", "grains.npy")
+DATA_PATH = os.path.join(PATH, "DATA", "nsynth", "mini")
 SCREEN_SIZE = 250
 WINDOW_SIZE = 750
 SCREEN_COLOR = (255, 255, 255)
@@ -27,7 +28,7 @@ BIT_WIDTH = 4
 CHANNELS = 1
 
 # Get latent data
-latent_data = np.load(EMBEDDINGS_PATH)
+latent_data = load_data(EMBEDDINGS_PATH)
 latent_dim = latent_data.shape[1]
 
 # Get PCA embedding
@@ -35,7 +36,7 @@ pca = PCA(n_components=2, whiten=True)
 pca.fit(latent_data)
 
 # Prepare inverse NSGT transform
-grain = np.load(DATA_PATH)[0]
+grain = load_data(DATA_PATH)[0]
 grain_length = len(grain)
 scale = nsgt.MelScale(20, 22050, 24)
 transform = nsgt.NSGT(scale, SR, len(grain), real=True, matrixform=True, reducedform=False)

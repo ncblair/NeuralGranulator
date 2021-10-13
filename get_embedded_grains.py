@@ -8,13 +8,14 @@ import nsgt
 import soundfile as sf
 
 from model import GrainVAE
+from utils import load_data
 
 
 # CONSTANTS
 PATH = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model2.pt")
+MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model_beta.pt")
 EMBEDDINGS_OUT_FOL = os.path.join(PATH, "EMBEDDINGS")
-DATA_PATH = os.path.join(PATH, "DATA", "grains.npy")
+DATA_PATH = os.path.join(PATH, "DATA", "nsynth", "mini")
 BATCH_SIZE = 16
 SR = 16000
 USE_CUDA = False
@@ -24,7 +25,7 @@ if (not os.path.exists(EMBEDDINGS_OUT_FOL)):
 	os.makedirs(EMBEDDINGS_OUT_FOL)
 
 # init dataset
-data = np.load(DATA_PATH)
+data = load_data(DATA_PATH)
 
 # init transform
 scale = nsgt.MelScale(20, 22050, 24)

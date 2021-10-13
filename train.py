@@ -11,18 +11,19 @@ from torch.utils.data import TensorDataset, DataLoader
 import nsgt
 
 from model import GrainVAE
+from utils import load_data
 
 # CONSTANTS
 PATH = os.path.dirname(os.path.abspath(__file__))
-DATA_PATH = os.path.join(PATH, "DATA", "grains.npy")
+DATA_PATH = os.path.join(PATH, "DATA/nsynth/mini")
 MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model_beta.pt")
 CONTINUE=False
 CONTINUE = CONTINUE and os.path.exists(MODEL_PATH)
-EPOCHS = 2000
+EPOCHS = 1000
 BATCH_SIZE = 1024
 SR = 16000
 LOG_EPOCHS = 10
-MAX_BETA = 4.0
+MAX_BETA = 2.0
 USE_CUDA = True
 if USE_CUDA:
 	DTYPE = torch.cuda.FloatTensor
@@ -35,13 +36,14 @@ else:
 	warmup_period = EPOCHS/2
 
 # init dataset
-data = np.load(DATA_PATH)
+data = load_data(DATA_PATH)
+print("LOADED DATASET: ", data.shape)
 scale = nsgt.MelScale(20, 22050, 24)
 transform = nsgt.NSGT(scale, SR, data.shape[1], real=True, matrixform=True, reducedform=False)
 
 #preprocessing step
 data_temp = []
-for grain in data:
+for grain in tqdm(data, "PREPROCESSING"):
 	data_transformed = transform.forward(grain)
 	data_transformed = np.array(data_transformed).flatten()
 	data_real = data_transformed.real

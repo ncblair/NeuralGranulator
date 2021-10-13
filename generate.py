@@ -10,7 +10,7 @@ from model import GrainVAE
 
 # CONSTANTS
 PATH = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model2.pt")
+MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model_beta.pt")
 AUDIO_OUT_FOL = os.path.join(PATH, "OUTPUT")
 DATA_PATH = os.path.join(PATH, "DATA", "grains.npy")
 BATCH_SIZE = 16
