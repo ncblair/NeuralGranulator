@@ -1,5 +1,6 @@
 import os
 import math
+import asyncio
 
 import pygame
 from sklearn.decomposition import PCA
@@ -15,6 +16,8 @@ from model import GrainVAE
 from granulator import Granulator
 from utils import load_data
 
+OSC = False
+
 PATH = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model_beta.pt")
 EMBEDDINGS_PATH = os.path.join(PATH, "EMBEDDINGS", "latents.npy")
@@ -26,6 +29,12 @@ USE_CUDA = False
 SR = 16000
 BIT_WIDTH = 4
 CHANNELS = 1
+
+# Conditionally Import OSC:
+osc_str = input("Would you like to use OSC for traversing through latent space? (y/N)")
+if osc_str == 'y' or osc_str=='Y':
+	OSC = True
+	import osc_latent
 
 # Get latent data
 latent_data = load_data(EMBEDDINGS_PATH)
@@ -132,44 +141,68 @@ def distort(surface, blur = .25):
 
 	surface.blit(distorted, (0, 0))
 
-# Start Audio
-gran.start_audio_stream()
-
-circle_pos = np.array([SCREEN_SIZE/2, SCREEN_SIZE/2])
-z = get_latent_vector(circle_pos)
-update_audio(z)
 
 # Run PyGame Loop
-running = True
-while running:
-	# get mouse position in [0, 1]
-	mouse_pos = np.array(pygame.mouse.get_pos()) * SCREEN_SIZE / WINDOW_SIZE
+async def main_loop():
+	# Start Audio
+	gran.start_audio_stream()
+	circle_pos = np.array([SCREEN_SIZE/2, SCREEN_SIZE/2])
+	z = get_latent_vector(circle_pos)
+	update_audio(z)
+	running = True
+	coordinates = np.zeros(2)
+	old_coordinates = np.zeros(2)
+	while running:
+		# get mouse position in [0, 1]
+		if OSC:
+			old_coordinates = coordinates
+			coordinates = osc_latent.osc_handler.get_osc_coordinates() * SCREEN_SIZE
+		else:
+			coordinates = np.array(pygame.mouse.get_pos()) * SCREEN_SIZE / WINDOW_SIZE
 
-	# draw
-	screen.fill(SCREEN_COLOR)
-	draw_background_circles(z)
-	distort(screen)
-	pygame.draw.circle(screen, (0,0,0), circle_pos, (SCREEN_SIZE/50))
-	# Did the user click the window close button?
-	for event in pygame.event.get():
-		if event.type == pygame.QUIT:
-			running = False
+		# draw
+		screen.fill(SCREEN_COLOR)
+		draw_background_circles(z)
+		distort(screen)
+		pygame.draw.circle(screen, (0,0,0), circle_pos, (SCREEN_SIZE/50))
+		# Did the user click the window close button?
+		for event in pygame.event.get():
+			if event.type == pygame.QUIT:
+				running = False
 
-		# On Mouse Button Up
-		if event.type == pygame.MOUSEBUTTONUP:
-			z = get_latent_vector(circle_pos)
-			update_audio(z)
+			# On Mouse Button Up
+			if event.type == pygame.MOUSEBUTTONUP:
+				z = get_latent_vector(circle_pos)
+				update_audio(z)
 
-	# If mouse being pressed
-	if pygame.mouse.get_pressed()[0]:
-		circle_pos = mouse_pos
-		z = get_latent_vector(circle_pos)
-		update_audio(z)
+		# If mouse being pressed
+		if OSC:
+			if not np.array_equal(coordinates, old_coordinates):
+				circle_pos = coordinates
+				z = get_latent_vector(circle_pos)
+				update_audio(z)
+		else:
+			if pygame.mouse.get_pressed()[0]:
+				circle_pos = coordinates
+				z = get_latent_vector(circle_pos)
+				update_audio(z)
 
-	transformed_screen = pygame.transform.scale(screen,(WINDOW_SIZE, WINDOW_SIZE))
-	win.blit(transformed_screen, (0, 0))
-		
-	pygame.display.flip()
+		transformed_screen = pygame.transform.scale(screen,(WINDOW_SIZE, WINDOW_SIZE))
+		win.blit(transformed_screen, (0, 0))
+			
+		pygame.display.flip()
+		await asyncio.sleep(0)
+	# Done! Time to quit.
+	pygame.quit()
 
-# Done! Time to quit.
-pygame.quit()
+if OSC:
+	async def init_osc_latent():
+		server = osc_latent.osc_server.AsyncIOOSCUDPServer(
+				(osc_latent.IP, osc_latent.PORT), osc_latent.dispatcher,
+				asyncio.get_event_loop())
+		transport, protocol = await server.create_serve_endpoint()
+		await main_loop()
+		transport.close()
+	asyncio.run(init_osc_latent())
+else :
+	asyncio.run(main_loop())

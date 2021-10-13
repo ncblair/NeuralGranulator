@@ -25,8 +25,8 @@ class OnMidiInput():
 		if midi_type == 128:
 			self.gran.note_off(midi_note)
 
-MAX_GRAIN_HISTORY = 10
-OVERLAP = 0.9
+MAX_GRAIN_HISTORY = 20
+OVERLAP = 0.5
 NUM_OVERLAPS = 3
 class GrainHistory:
 	def __init__(self):
