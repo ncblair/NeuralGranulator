@@ -39,7 +39,7 @@ SCREEN_COLOR = (255, 255, 255)
 MAX_GRAIN_HISTORY = 10
 OVERLAP = 0.9
 NUM_OVERLAPS = 3
-TEST_BATCH_SIZE = 2 # unison of neural net input
-SPREAD = 1 # variance of neural net input
+TEST_BATCH_SIZE = 1 # unison of neural net input
+SPREAD = 0 # variance of neural net input
 
 
