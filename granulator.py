@@ -34,7 +34,7 @@ class Granulator:
 		# 0 if note off, 1 if note on
 		# the actual grain
 		# 0 not ready, need to apply pitch shift, 1 : ready for audio loop
-		self.grains = {i:[0, [0], 0] for i in range(128)}
+		self.grains = {i:[0, np.array([0]), 0] for i in range(128)}
 		self.counter = {i: 0 for i in range(128)}
 		
 
@@ -79,10 +79,10 @@ class Granulator:
 	def note_on(self, note):
 		self.grains[note][0] = 1
 		if self.grains[note][2] == 0:
-			# self.grains[note][1] = librosa.effects.pitch_shift(self.grains[60][1],
-			# 											self.sample_rate,
-			# 											n_steps=note - 60)
-			self.grains[note][1] = resample(self.grains[60][1], 2**(note-60), "sinc_fastest")
+			self.grains[note][1] = librosa.resample(self.grains[60][1], 
+													self.sample_rate, 
+													self.sample_rate / (2**((note-60)/12)), 
+													res_type="kaiser_fast")
 			self.grains[note][2] = 1
 
 	def note_off(self, note):
