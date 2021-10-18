@@ -8,3 +8,4 @@ def load_data(data_path):
 		data = [load_data(os.path.join(data_path, d)) for d in os.listdir(data_path)]
 		data = [x for x in data if x is not None]
 		return np.concatenate(data)
+

@@ -1,4 +1,3 @@
-import os
 import math
 import asyncio
 
@@ -10,25 +9,13 @@ import torch #1.2.0
 import soundfile as sf
 import colorsys
 from scipy.ndimage.filters import gaussian_filter
-from scipy.signal import tukey
-
 from model import GrainVAE
 from granulator import Granulator
 from utils import load_data
+from config import 	MODEL_PATH, EMBEDDINGS_PATH, DATA_PATH, SCREEN_SIZE, \
+					WINDOW_SIZE, SCREEN_COLOR, USE_CUDA, SR, BIT_WIDTH, \
+					CHANNELS, TEST_BATCH_SIZE, SPREAD, OSC
 
-OSC = False
-
-PATH = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model_beta.pt")
-EMBEDDINGS_PATH = os.path.join(PATH, "EMBEDDINGS", "latents.npy")
-DATA_PATH = os.path.join(PATH, "DATA", "nsynth", "mini")
-SCREEN_SIZE = 250
-WINDOW_SIZE = 750
-SCREEN_COLOR = (255, 255, 255)
-USE_CUDA = False
-SR = 16000
-BIT_WIDTH = 4
-CHANNELS = 1
 
 # Conditionally Import OSC:
 osc_str = input("Would you like to use OSC for traversing through latent space? (y/N)")
@@ -48,7 +35,7 @@ pca.fit(latent_data)
 grain = load_data(DATA_PATH)[0]
 grain_length = len(grain)
 scale = nsgt.MelScale(20, 22050, 24)
-transform = nsgt.NSGT(scale, SR, len(grain), real=True, matrixform=True, reducedform=False)
+transform = nsgt.NSGT(scale, SR, grain_length, real=True, matrixform=True, reducedform=False)
 example_nsgt = transform.forward(grain)
 nsgt_shape = np.array(example_nsgt).shape
 nsgt_length = nsgt_shape[0] * nsgt_shape[1] * 2 # times 2 for complex number
@@ -83,29 +70,31 @@ circle_size = SCREEN_SIZE/50
 # circle_size_variance = SCREEN_SIZE / 400
 z = torch.zeros(1, latent_dim)
 
-def get_latent_vector(pos):
+def get_latent_vector(pos, variance = 0):
 	# get corresponding latent vector
 	pos = (pos * 6 / SCREEN_SIZE) - 3
-	z = pca.inverse_transform(np.expand_dims(pos, 0))
-	z = torch.Tensor(z)
+	z_mean = pca.inverse_transform(np.expand_dims(pos, 0))
+	z_mean = torch.Tensor(z_mean)
+	# get batch around that latent vector with variance
+	z = z_mean + variance * torch.randn(TEST_BATCH_SIZE, latent_dim)
 	if USE_CUDA:
 		z.cuda()
-	return z
+		z_mean.cuda()
+	return z_mean, z
 
 def update_audio(z):
 	# get model nsgt out
 	model_out = model.decoder(z)
 	complex_out = model.to_complex_repr(model_out)
-	nsgt_out = list(complex_out.reshape(nsgt_shape[0], nsgt_shape[1]))
+	nsgts_out = [list(x.reshape(nsgt_shape[0], nsgt_shape[1])) for x in complex_out]
 
-	# get audio from nsgt inverse transform
-	audio_out = transform.backward(nsgt_out) 
+	# get audio from nsgt inverse transform batch and sum voices
+	audio_out = np.sum([transform.backward(nsgt) for nsgt in nsgts_out], axis=0)
 
 	# normalize audio to help prevent clipping
 	audio_out = audio_out / np.max(np.abs(audio_out)) / 4
 
-	# windowing?
-	audio_out *= tukey(len(audio_out))
+	# replace current grain in granulator
 	gran.replace_grain(audio_out)
 
 
@@ -141,17 +130,19 @@ def distort(surface, blur = .25):
 
 	surface.blit(distorted, (0, 0))
 
-
 # Run PyGame Loop
 async def main_loop():
-	# Start Audio
+
 	gran.start_audio_stream()
+
 	circle_pos = np.array([SCREEN_SIZE/2, SCREEN_SIZE/2])
-	z = get_latent_vector(circle_pos)
+	z_mean, z = get_latent_vector(circle_pos, SPREAD)
 	update_audio(z)
-	running = True
 	coordinates = np.zeros(2)
 	old_coordinates = np.zeros(2)
+
+	# Run PyGame Loop
+	running = True
 	while running:
 		# get mouse position in [0, 1]
 		if OSC:
@@ -162,7 +153,7 @@ async def main_loop():
 
 		# draw
 		screen.fill(SCREEN_COLOR)
-		draw_background_circles(z)
+		draw_background_circles(z_mean)
 		distort(screen)
 		pygame.draw.circle(screen, (0,0,0), circle_pos, (SCREEN_SIZE/50))
 		# Did the user click the window close button?
@@ -172,26 +163,26 @@ async def main_loop():
 
 			# On Mouse Button Up
 			if event.type == pygame.MOUSEBUTTONUP:
-				z = get_latent_vector(circle_pos)
+				z_mean, z = get_latent_vector(circle_pos, SPREAD)
 				update_audio(z)
 
 		# If mouse being pressed
 		if OSC:
 			if not np.array_equal(coordinates, old_coordinates):
 				circle_pos = coordinates
-				z = get_latent_vector(circle_pos)
+				z_mean, z = get_latent_vector(circle_pos, SPREAD)
 				update_audio(z)
 		else:
 			if pygame.mouse.get_pressed()[0]:
 				circle_pos = coordinates
-				z = get_latent_vector(circle_pos)
+				z_mean, z = get_latent_vector(circle_pos, SPREAD)
 				update_audio(z)
 
 		transformed_screen = pygame.transform.scale(screen,(WINDOW_SIZE, WINDOW_SIZE))
 		win.blit(transformed_screen, (0, 0))
 			
 		pygame.display.flip()
-		await asyncio.sleep(0)
+
 	# Done! Time to quit.
 	pygame.quit()
 

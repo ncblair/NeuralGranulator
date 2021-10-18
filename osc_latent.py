@@ -4,7 +4,9 @@ import numpy as np
 from pythonosc import dispatcher
 from pythonosc import osc_server
 
-IP = "169.231.37.250"
+from config import IP, PORT
+
+IP = "192.168.1.207" # eudoram"169.231.37.250"
 PORT = 57121
 
 class OSCLatent :
@@ -19,4 +21,6 @@ class OSCLatent :
 osc_handler = OSCLatent()
 dispatcher = dispatcher.Dispatcher()
 dispatcher.map("/1/xy1",osc_handler.get_coordinates_handler)
+
+# dispatcher.map("/1/fader1",test)
 

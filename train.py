@@ -12,19 +12,9 @@ import nsgt
 
 from model import GrainVAE
 from utils import load_data
+from config import  DATA_PATH, MODEL_PATH, CONTINUE, EPOCHS, BATCH_SIZE, SR, \
+					LOG_EPOCHS, MAX_BETA, USE_CUDA
 
-# CONSTANTS
-PATH = os.path.dirname(os.path.abspath(__file__))
-DATA_PATH = os.path.join(PATH, "DATA/nsynth/mini")
-MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model_beta.pt")
-CONTINUE=False
-CONTINUE = CONTINUE and os.path.exists(MODEL_PATH)
-EPOCHS = 1000
-BATCH_SIZE = 1024
-SR = 16000
-LOG_EPOCHS = 10
-MAX_BETA = 2.0
-USE_CUDA = True
 if USE_CUDA:
 	DTYPE = torch.cuda.FloatTensor
 else:

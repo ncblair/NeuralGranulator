@@ -6,16 +6,7 @@ import nsgt
 import soundfile as sf
 
 from model import GrainVAE
-
-
-# CONSTANTS
-PATH = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model_beta.pt")
-AUDIO_OUT_FOL = os.path.join(PATH, "OUTPUT")
-DATA_PATH = os.path.join(PATH, "DATA", "grains.npy")
-BATCH_SIZE = 16
-SR = 16000
-USE_CUDA = False
+from config import MODEL_PATH, AUDIO_OUT_FOL, DATA_PATH, BATCH_SIZE, SR, USE_CUDA
 
 # Get grain
 grain = np.load(DATA_PATH)[0]

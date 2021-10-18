@@ -5,11 +5,7 @@ import os
 import numpy as np
 import librosa
 import soundfile as sf
-
-PATH = os.path.dirname(os.path.abspath(__file__))
-AUDIO_FOLDER = os.path.join(PATH, "INPUT")
-OUTPUT_FOLDER = os.path.join(PATH, "DATA")
-SILENCE_CUTOFF = 0.05
+from config import AUDIO_FOLDER, OUTPUT_FOLDER, SILENCE_CUTOFF
 
 # Note: works best on input audio files with uniformly spaced info
 def is_not_silent(audio_file):
