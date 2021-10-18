@@ -9,7 +9,7 @@ import torch #1.2.0
 import soundfile as sf
 import colorsys
 from scipy.ndimage.filters import gaussian_filter
-from scipy.signal import tukey
+from scipy.signal import tukey, hanning
 
 from model import GrainVAE
 from granulator import Granulator
@@ -18,7 +18,7 @@ from utils import load_data
 PATH = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model_beta.pt")
 EMBEDDINGS_PATH = os.path.join(PATH, "EMBEDDINGS", "latents.npy")
-DATA_PATH = os.path.join(PATH, "DATA", "nsynth", "mini")
+DATA_PATH = os.path.join(PATH, "DATA")
 SCREEN_SIZE = 250
 WINDOW_SIZE = 750
 SCREEN_COLOR = (255, 255, 255)
