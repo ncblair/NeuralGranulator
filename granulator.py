@@ -27,17 +27,6 @@ class OnMidiInput():
 		# MIDI NOTE OFF
 		if midi_type == 128:
 			self.gran.note_off(midi_note)
-		
-
-# class Grain:
-
-# 	def __init__(self, grains, grain_len = 1600):
-# 		self.grain_len = grain_len
-# 		self.density = density
-# 		self.active = False
-# 		self.samples = []
-
-
 
 class Granulator:
 
