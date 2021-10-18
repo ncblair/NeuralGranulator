@@ -1,4 +1,3 @@
-import os
 import math
 
 import pygame
@@ -9,23 +8,14 @@ import torch #1.2.0
 import soundfile as sf
 import colorsys
 from scipy.ndimage.filters import gaussian_filter
-from scipy.signal import tukey
 
 from model import GrainVAE
 from granulator import Granulator
 from utils import load_data
+from config import 	MODEL_PATH, EMBEDDINGS_PATH, DATA_PATH, SCREEN_SIZE, \
+					WINDOW_SIZE, SCREEN_COLOR, USE_CUDA, SR, BIT_WIDTH, \
+					CHANNELS, TEST_BATCH_SIZE, SPREAD
 
-PATH = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model_beta.pt")
-EMBEDDINGS_PATH = os.path.join(PATH, "EMBEDDINGS", "latents.npy")
-DATA_PATH = os.path.join(PATH, "DATA", "nsynth", "mini")
-SCREEN_SIZE = 250
-WINDOW_SIZE = 750
-SCREEN_COLOR = (255, 255, 255)
-USE_CUDA = False
-SR = 16000
-BIT_WIDTH = 4
-CHANNELS = 1
 
 # Get latent data
 latent_data = load_data(EMBEDDINGS_PATH)
@@ -74,29 +64,31 @@ circle_size = SCREEN_SIZE/50
 # circle_size_variance = SCREEN_SIZE / 400
 z = torch.zeros(1, latent_dim)
 
-def get_latent_vector(pos):
+def get_latent_vector(pos, variance = 0):
 	# get corresponding latent vector
 	pos = (pos * 6 / SCREEN_SIZE) - 3
-	z = pca.inverse_transform(np.expand_dims(pos, 0))
-	z = torch.Tensor(z)
+	z_mean = pca.inverse_transform(np.expand_dims(pos, 0))
+	z_mean = torch.Tensor(z_mean)
+	# get batch around that latent vector with variance
+	z = z_mean + variance * torch.randn(TEST_BATCH_SIZE, latent_dim)
 	if USE_CUDA:
 		z.cuda()
-	return z
+		z_mean.cuda()
+	return z_mean, z
 
 def update_audio(z):
 	# get model nsgt out
 	model_out = model.decoder(z)
 	complex_out = model.to_complex_repr(model_out)
-	nsgt_out = list(complex_out.reshape(nsgt_shape[0], nsgt_shape[1]))
+	nsgts_out = [list(x.reshape(nsgt_shape[0], nsgt_shape[1])) for x in complex_out]
 
-	# get audio from nsgt inverse transform
-	audio_out = transform.backward(nsgt_out) 
+	# get audio from nsgt inverse transform batch and sum voices
+	audio_out = np.sum([transform.backward(nsgt) for nsgt in nsgts_out], axis=0)
 
 	# normalize audio to help prevent clipping
-	audio_out = audio_out / np.max(np.abs(audio_out)) / 4
+	audio_out = audio_out / np.max(np.abs(audio_out))
 
-	# windowing?
-	audio_out *= tukey(len(audio_out))
+	# replace current grain in granulator
 	gran.replace_grain(audio_out)
 
 
@@ -136,7 +128,7 @@ def distort(surface, blur = .25):
 gran.start_audio_stream()
 
 circle_pos = np.array([SCREEN_SIZE/2, SCREEN_SIZE/2])
-z = get_latent_vector(circle_pos)
+z_mean, z = get_latent_vector(circle_pos, SPREAD)
 update_audio(z)
 
 # Run PyGame Loop
@@ -147,7 +139,7 @@ while running:
 
 	# draw
 	screen.fill(SCREEN_COLOR)
-	draw_background_circles(z)
+	draw_background_circles(z_mean)
 	distort(screen)
 	pygame.draw.circle(screen, (0,0,0), circle_pos, (SCREEN_SIZE/50))
 	# Did the user click the window close button?
@@ -157,13 +149,13 @@ while running:
 
 		# On Mouse Button Up
 		if event.type == pygame.MOUSEBUTTONUP:
-			z = get_latent_vector(circle_pos)
+			z_mean, z = get_latent_vector(circle_pos, SPREAD)
 			update_audio(z)
 
 	# If mouse being pressed
 	if pygame.mouse.get_pressed()[0]:
 		circle_pos = mouse_pos
-		z = get_latent_vector(circle_pos)
+		z_mean, z = get_latent_vector(circle_pos, SPREAD)
 		update_audio(z)
 
 	transformed_screen = pygame.transform.scale(screen,(WINDOW_SIZE, WINDOW_SIZE))
