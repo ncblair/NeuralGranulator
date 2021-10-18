@@ -5,7 +5,7 @@ import os
 PATH = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model_beta.pt")
 AUDIO_OUT_FOL = os.path.join(PATH, "OUTPUT")
-DATA_PATH = os.path.join(PATH, "DATA", "nsynth", "mini")
+DATA_PATH = os.path.join(PATH, "DATA")
 EMBEDDINGS_PATH = os.path.join(PATH, "EMBEDDINGS", "latents.npy")
 AUDIO_FOLDER = os.path.join(PATH, "INPUT")
 
@@ -40,6 +40,6 @@ MAX_GRAIN_HISTORY = 10
 OVERLAP = 0.9
 NUM_OVERLAPS = 3
 TEST_BATCH_SIZE = 2 # unison of neural net input
-SPREAD = 0 # variance of neural net input
+SPREAD = 1 # variance of neural net input
 
 

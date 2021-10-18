@@ -28,7 +28,7 @@ pca.fit(latent_data)
 grain = load_data(DATA_PATH)[0]
 grain_length = len(grain)
 scale = nsgt.MelScale(20, 22050, 24)
-transform = nsgt.NSGT(scale, SR, len(grain), real=True, matrixform=True, reducedform=False)
+transform = nsgt.NSGT(scale, SR, grain_length, real=True, matrixform=True, reducedform=False)
 example_nsgt = transform.forward(grain)
 nsgt_shape = np.array(example_nsgt).shape
 nsgt_length = nsgt_shape[0] * nsgt_shape[1] * 2 # times 2 for complex number
@@ -85,7 +85,7 @@ def update_audio(z):
 	audio_out = np.sum([transform.backward(nsgt) for nsgt in nsgts_out], axis=0)
 
 	# normalize audio to help prevent clipping
-	audio_out = audio_out / np.max(np.abs(audio_out))
+	audio_out = audio_out / np.max(np.abs(audio_out)) / 4
 
 	# replace current grain in granulator
 	gran.replace_grain(audio_out)
