@@ -90,14 +90,16 @@ class Granulator:
 
 	def get_smoothed_current_grain(self):
 		# get all the grains that are on
-		grains = [(note, grain) for note, (on, grain, _) in self.grains.items() if on]
+		note_grains = [(note, grain) for note, (on, grain, _) in self.grains.items() if on]
 
 		# if there are grains on, get frame_count samples from the sum of those grains
-		if len(grains) > 0:
+		if len(note_grains) > 0:
+			notes, grains = zip(*note_grains)
 			# smooth grains by adding two windowed grains together
-			windows = [triang(grain.shape[0]) for note, grain in grains]
-			grains = [(n, w*g + w*np.roll(g, len(g)//2)) for (n, g), w in zip(grains, windows)]
-		return grains
+			grains = [triang(g.shape[0])*g for g in grains]
+			grains = [g + np.roll(g, len(g)//2) for g in grains]
+			note_grains = list(zip(notes, grains))
+		return note_grains
 
 
 					

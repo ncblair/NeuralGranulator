@@ -70,7 +70,6 @@ def get_latent_vector(pos, variance = 0):
 	z_mean = torch.Tensor(z_mean)
 	# get batch around that latent vector with variance
 	z = z_mean + variance * torch.randn(TEST_BATCH_SIZE, latent_dim)
-	print(z_mean, z)
 	if USE_CUDA:
 		z.cuda()
 		z_mean.cuda()
