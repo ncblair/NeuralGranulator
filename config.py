@@ -43,3 +43,7 @@ TEST_BATCH_SIZE = 1 # unison of neural net input
 SPREAD = 0 # variance of neural net input
 
 
+# OSC
+OSC = False
+IP = "192.168.1.207"
+PORT = 57121
