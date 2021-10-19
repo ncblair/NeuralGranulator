@@ -8,24 +8,20 @@ import nsgt
 import soundfile as sf
 
 from model import GrainVAE
-from utils import load_data
+from utils import load_data, map_labels_to_ints
+
+from config import MODEL_PATH, EMBEDDINGS_PATH, DATA_PATH, BATCH_SIZE, SR, USE_CUDA, LABEL_KEYFILE
 
 
-# CONSTANTS
-PATH = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model_beta.pt")
-EMBEDDINGS_OUT_FOL = os.path.join(PATH, "EMBEDDINGS")
-DATA_PATH = os.path.join(PATH, "DATA", "nsynth", "mini")
-BATCH_SIZE = 16
-SR = 16000
-USE_CUDA = False
 
 # Make the output folder if it doesn't exist
-if (not os.path.exists(EMBEDDINGS_OUT_FOL)):
-	os.makedirs(EMBEDDINGS_OUT_FOL)
+embed_fol = os.path.dirname(EMBEDDINGS_PATH)
+if (not os.path.exists(embed_fol)):
+	os.makedirs(embed_fol)
 
 # init dataset
-data = load_data(DATA_PATH)
+data, Y = load_data(DATA_PATH)
+Y = map_labels_to_ints(Y, key_file=LABEL_KEYFILE)
 
 # init transform
 scale = nsgt.MelScale(20, 22050, 24)
@@ -33,7 +29,7 @@ transform = nsgt.NSGT(scale, SR, data.shape[1], real=True, matrixform=True, redu
 
 #preprocessing step
 data_temp = []
-for grain in data:
+for grain in tqdm(data, "PREPROCESSING"):
 	data_transformed = transform.forward(grain)
 	data_transformed = np.array(data_transformed).flatten()
 	data_real = data_transformed.real
@@ -67,17 +63,21 @@ if USE_CUDA:
 latents = []
 for x in tqdm(iter(dataloader)):
 	# # Get batch (variable on GPU)
-	x = x[0]
 	if USE_CUDA:
-		x = x.cuda()
+		x = x[0].cuda()
 
 	# encode x to get mu and std
 	mu, log_var = model.encoder(x)
-	std = torch.exp(log_var/2)
+	# std = torch.exp(log_var/2)
 
-	# sample z from normal
-	q = torch.distributions.Normal(mu, std)
-	latents.append(np.array(q.sample().detach().cpu()))
+	# # sample z from normal
+	# q = torch.distributions.Normal(mu, std)
+	# latents.append(np.array(q.sample().detach().cpu()))
+
+	# at test time, just return mu
+	latents.append(mu.detach().cpu().numpy())
 
 latents = np.concatenate(latents)
-np.save(os.path.join(EMBEDDINGS_OUT_FOL, "latents.npy"), latents)
+np.save(EMBEDDINGS_PATH, latents)
+y_path = EMBEDDINGS_PATH[:-4] + "_y" + ".npy"
+np.save(y_path, Y)
