@@ -43,9 +43,12 @@ class Granulator:
 		self.close_midi_port()
 	
 	def replace_grain(self, grain):
+		self.grains[60][1] = grain
 		for note in self.grains:
 			self.grains[note][2] = 0
-		self.grains[60][1] = grain
+			if self.grains[note][0] == 1:
+				# note on
+				self.note_on(note)
 		self.grains[60][2] = 1
 
 	def init_audio_stream(self, sample_rate, bit_width, num_channels):
