@@ -11,9 +11,10 @@ from torch.utils.data import TensorDataset, DataLoader
 import nsgt
 
 from model import GrainVAE
-from utils import load_data
-from config import  DATA_PATH, MODEL_PATH, CONTINUE, EPOCHS, BATCH_SIZE, SR, \
-					LOG_EPOCHS, MAX_BETA, USE_CUDA
+from utils import load_data, map_labels_to_ints
+from config import  DATA_PATH, MODEL_PATH, CONTINUE, EPOCHS, BATCH_SIZE, LEARNING_RATE, \
+					LAMBDA, MAX_GRAD_NORM, SR, LOG_EPOCHS, MAX_BETA, USE_CUDA, LABEL_KEYFILE, \
+					CHECKPOINT_EPOCHS
 
 if USE_CUDA:
 	DTYPE = torch.cuda.FloatTensor
@@ -26,25 +27,28 @@ else:
 	warmup_period = EPOCHS/2
 
 # init dataset
-data = load_data(DATA_PATH)
-print("LOADED DATASET: ", data.shape)
-scale = nsgt.MelScale(20, 22050, 24)
-transform = nsgt.NSGT(scale, SR, data.shape[1], real=True, matrixform=True, reducedform=False)
+X, Y = load_data(DATA_PATH)
+Y = map_labels_to_ints(Y, key_file=LABEL_KEYFILE)
 
+print("LOADED DATASET: ", X.shape)
+scale = nsgt.MelScale(20, 22050, 24)
+transform = nsgt.NSGT(scale, SR, X.shape[1], real=True, matrixform=True, reducedform=False)
 #preprocessing step
 data_temp = []
-for grain in tqdm(data, "PREPROCESSING"):
+for grain in tqdm(X, "PREPROCESSING"):
 	data_transformed = transform.forward(grain)
 	data_transformed = np.array(data_transformed).flatten()
 	data_real = data_transformed.real
 	data_imag = data_transformed.imag
 	data_temp.append(np.concatenate([data_real, data_imag]))
-data = np.array(data_temp)
+X = np.array(data_temp)
 
 # convert data to Tensorflow DataLoader
-data = torch.Tensor(data)
-grain_length = data.shape[1]
-data = TensorDataset(data)
+X = torch.Tensor(X)
+Y = torch.Tensor(Y).long()
+grain_length = X.shape[1]
+
+data = TensorDataset(X, Y)
 dataloader = DataLoader(data,
 						batch_size=BATCH_SIZE,
 						shuffle=True,
@@ -67,10 +71,10 @@ if USE_CUDA:
 	model.cuda()
 
 # init optimizer
-optimizer = optim.Adam(model.parameters(), lr=.0001)
+optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
 # TRAIN LOOP
-losses = []
+losses, kls, recons = [], [], []
 pbar = tqdm(range(EPOCHS))
 for epoch in pbar:
 
@@ -78,27 +82,35 @@ for epoch in pbar:
 	beta = (epoch / EPOCHS) * MAX_BETA if epoch < warmup_period else MAX_BETA
 
 	# Go through batches
-	for x in iter(dataloader):
+	for x, y in iter(dataloader):
 		# # Get batch (variable on GPU)
 		# x = Variable(data[i: i + BATCH_SIZE])
-		x = Variable(x[0]).type(DTYPE)
-		
+		x = Variable(x).type(DTYPE)
+		y.type(DTYPE)
 		# Run model
-		loss = model.train_step(x, beta)
+		loss, kl, recon = model.train_step(x, beta, y, lmbda=LAMBDA)
 
 		# Optimize model
 		optimizer.zero_grad()
 		loss.backward()
 		loss = loss.data
 		losses += [loss.detach().cpu()]
+		kls += [kl.detach().cpu()]
+		recons += [recon.detach().cpu()]
 		if len(losses) > LOG_EPOCHS:
 			losses = losses[1:]
+			kls = kls[1:]
+			recons = recons[1:]
 
+		# Clip gradients and take optimization step
+		torch.nn.utils.clip_grad_norm_(model.parameters, MAX_GRAD_NORM)
 		optimizer.step()
-		#CONSIDER IMPLEMENTING GRADIENT CLIPPING HERE (LOOK THAT UP)
 
 		#LOG TRAINING HERE
-	pbar.set_description("Loss %s" % np.mean(losses))
+	pbar.set_description(f"Loss: {np.mean(losses)}, recon: {np.mean(recons)}, kls: {np.mean(kls)}")
+
+	if epoch % CHECKPOINT_EPOCHS == 0 and epoch > 0:
+		torch.save(model.state_dict(), MODEL_PATH)
 
 # Save model
 torch.save(model.state_dict(), MODEL_PATH)

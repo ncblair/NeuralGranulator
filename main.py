@@ -9,6 +9,8 @@ import torch #1.2.0
 import soundfile as sf
 import colorsys
 from scipy.ndimage.filters import gaussian_filter
+import matplotlib.pyplot as plt
+
 from model import GrainVAE
 from granulator import Granulator
 from utils import load_data
@@ -24,15 +26,26 @@ if osc_str == 'y' or osc_str=='Y':
 	import osc_latent
 
 # Get latent data
-latent_data = load_data(EMBEDDINGS_PATH)
+latent_data, latent_y = np.load(EMBEDDINGS_PATH), np.load(EMBEDDINGS_PATH[:-4] + "_y" + ".npy")
 latent_dim = latent_data.shape[1]
+num_classes = len(set(latent_y))
 
 # Get PCA embedding
 pca = PCA(n_components=2, whiten=True)
-pca.fit(latent_data)
+projections = pca.fit_transform(latent_data)
+class_vectors = np.eye(latent_dim)[:num_classes]
+projections = pca.transform(class_vectors)
+# c_dict = {0:"red", 1:"blue", 2:"green"}
+# colors = [c_dict[i] for i in latent_y]
+# plt.scatter(projections[:, 0], projections[:, 1], c=colors)
+# # plt.xlim([-0.01, 0.01])
+# # plt.ylim([-0.01, 0.01])
+# plt.show()
+# import pdb;pdb.set_trace()
+
 
 # Prepare inverse NSGT transform
-grain = load_data(DATA_PATH)[0]
+grain = load_data(DATA_PATH)[0][0]
 grain_length = len(grain)
 scale = nsgt.MelScale(20, 22050, 24)
 transform = nsgt.NSGT(scale, SR, grain_length, real=True, matrixform=True, reducedform=False)
@@ -53,6 +66,8 @@ if USE_CUDA:
 
 # Initialize PyGame
 pygame.init()
+pygame.font.init()
+font = pygame.font.SysFont('arial', 30)
 
 # Init Granulator
 gran = Granulator()
@@ -78,8 +93,8 @@ def get_latent_vector(pos, variance = 0):
 	# get batch around that latent vector with variance
 	z = z_mean + variance * torch.randn(TEST_BATCH_SIZE, latent_dim)
 	if USE_CUDA:
-		z.cuda()
-		z_mean.cuda()
+		z = z.cuda()
+		z_mean = z_mean.cuda()
 	return z_mean, z
 
 def update_audio(z):
@@ -106,7 +121,7 @@ def draw_background_circles(z):
 	saturation = 1
 	value = 1
 	sqrt_num_circles = int(math.sqrt(latent_dim))
-	z = z.numpy()[0]
+	z = z.cpu().numpy()[0]
 	min_z = np.min(z)
 	max_z = np.max(z)
 	if min_z != max_z: # avoid divide by zero
@@ -129,6 +144,24 @@ def distort(surface, blur = .25):
 	distorted = pygame.surfarray.make_surface(blurred)
 
 	surface.blit(distorted, (0, 0))
+
+def draw_latent_projections(projections, window):
+	saturation = 1
+	value = 1
+
+	text_and_rects = []
+	for i, position in enumerate(projections):
+		# print(position, SCREEN_SIZE)
+		position = (position + 3) * SCREEN_SIZE / 6 # screen goes from coordinates -3 to 3
+
+		hue = i / num_classes
+		color = np.array(colorsys.hsv_to_rgb(hue,saturation,value))
+		color = list((255*color).astype(np.int))
+		pygame.draw.circle(screen, color, position, 1)
+		text = font.render(f"{i}", True, (0, 0, 0))
+		textRect = text.get_rect()
+		textRect.center = position * WINDOW_SIZE / SCREEN_SIZE
+		window.blit(text, textRect)
 
 # Run PyGame Loop
 async def main_loop():
@@ -180,6 +213,8 @@ async def main_loop():
 
 		transformed_screen = pygame.transform.scale(screen,(WINDOW_SIZE, WINDOW_SIZE))
 		win.blit(transformed_screen, (0, 0))
+		draw_latent_projections(projections, win)
+		
 			
 		pygame.display.flip()
 
