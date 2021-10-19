@@ -12,6 +12,7 @@ def load_data(data_path):
 		data = [x for x in data if x is not None]
 		x, y = zip(*data)
 		return np.concatenate(x), sum(y, [])
+	
 
 
 def map_labels_to_ints(labels, key_file=None):

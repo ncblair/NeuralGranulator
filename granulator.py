@@ -6,7 +6,7 @@ import rtmidi.midiutil
 from collections import deque
 from scipy.signal import tukey, triang
 
-from config import MAX_GRAIN_HISTORY, OVERLAP, NUM_OVERLAPS
+from config import MAX_GRAIN_HISTORY, OVERLAP, NUM_OVERLAPS, SR
 
 # http://people.csail.mit.edu/hubert/pyaudio/docs/
 # https://github.com/khalidtouch/XigmaLessons/blob/6d95e1961ce86a8258e398f00411b37ad5bc80bf/PYTHON/Music_Player_App/pygame/tests/midi_test.py
@@ -28,6 +28,51 @@ class OnMidiInput():
 		if midi_type == 128:
 			self.gran.note_off(midi_note)
 
+class Voice:
+	def __init__(self, sample_rate):
+		self.note = 60
+		self.trigger = False
+		self.grain = None
+		self.index_grain = 0
+		self.sample_rate = sample_rate
+
+		# Hardcode envelope for now
+		self.envelope = ADSREnvelope(1,0.2,0.7,0.3,self.sample_rate)
+	
+	def pitch_voice(self, note):
+		self.grain = librosa.resample(self.grain, 
+						self.sample_rate, 
+						self.sample_rate / (2**((note-60)/12)), 
+						res_type="kaiser_fast")
+	
+	# run this only on grains that are triggered
+	def replace_grain(self, grain):
+		if not self.trigger:
+			return
+
+		self.grain = grain
+		self.index_grain = 0
+		if self.note not 60:
+			pitch_voice(note)
+
+	def note_on(self, grain, note):
+		self.note = note
+		replace_grain(grain)
+		# init envelope 
+		self.trigger = True
+
+	def note_release(self):
+		# start release, when done, set trigger to false
+	
+	def get_audio_data(self, size):
+		# audio buffer = grab the smoothed grain and multiply it by current enevelope ?????
+		# increment envelope and grain index by size
+		# return audio buffer
+
+		
+		
+
+
 class Granulator:
 
 	def __init__(self):
@@ -36,12 +81,13 @@ class Granulator:
 		# 0 not ready, need to apply pitch shift, 1 : ready for audio loop
 		self.grains = {i:[0, np.array([0]), 0] for i in range(128)}
 		self.counter = {i: 0 for i in range(128)}
+		self.voices = {i: Voice(SR) for i in range(128)}
 		
 
 	def __del__(self):
 		self.close_audio_stream()
 		self.close_midi_port()
-	
+		
 	def replace_grain(self, grain):
 		self.grains[60][1] = grain
 		for note in self.grains:
@@ -91,6 +137,7 @@ class Granulator:
 	def note_off(self, note):
 		self.grains[note][0] = 0
 
+	# Note: this method uses knowledge of all grains globally, so it will be tricky to implement with the voice system.
 	def get_smoothed_current_grain(self):
 		# get all the grains that are on
 		note_grains = [(note, grain) for note, (on, grain, _) in self.grains.items() if on]
