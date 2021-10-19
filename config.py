@@ -3,7 +3,7 @@ import os
 
 # PATHS
 PATH = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model_beta.pt")
+MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model_conditional.pt")
 AUDIO_OUT_FOL = os.path.join(PATH, "OUTPUT")
 DATA_PATH = os.path.join(PATH, "DATA")
 EMBEDDINGS_PATH = os.path.join(PATH, "EMBEDDINGS", "latents.npy")
