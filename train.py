@@ -103,7 +103,7 @@ for epoch in pbar:
 			recons = recons[1:]
 
 		# Clip gradients and take optimization step
-		torch.nn.utils.clip_grad_norm_(model.parameters, MAX_GRAD_NORM)
+		torch.nn.utils.clip_grad_norm_(model.parameters(), MAX_GRAD_NORM)
 		optimizer.step()
 
 		#LOG TRAINING HERE

@@ -3,10 +3,10 @@ import os
 
 # PATHS
 PATH = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model_lambda.pt")
+MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model_lambda2.pt")
 AUDIO_OUT_FOL = os.path.join(PATH, "OUTPUT")
-DATA_PATH = os.path.join(PATH, "DATA", "nsynth", "mini")
-EMBEDDINGS_PATH = os.path.join(PATH, "EMBEDDINGS", "latents2.npy")
+DATA_PATH = os.path.join(PATH, "DATA", "nsynth")
+EMBEDDINGS_PATH = os.path.join(PATH, "EMBEDDINGS", "latents_lambda2.npy")
 AUDIO_FOLDER = os.path.join(PATH, "INPUT")
 LABEL_KEYFILE = os.path.join(PATH, "label_mapping.txt")
 
@@ -24,11 +24,11 @@ SILENCE_CUTOFF = 0.05
 
 
 # TRAINING
-EPOCHS = 600
+EPOCHS = 1000
 LEARNING_RATE = .0001
 LOG_EPOCHS = 10
-CHECKPOINT_EPOCHS = 50
-MAX_BETA = 50
+CHECKPOINT_EPOCHS = 100
+MAX_BETA = 100
 LAMBDA = 3
 MAX_GRAD_NORM = 5
 CONTINUE=False

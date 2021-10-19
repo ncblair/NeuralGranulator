@@ -16,7 +16,7 @@ from granulator import Granulator
 from utils import load_data
 from config import 	MODEL_PATH, EMBEDDINGS_PATH, DATA_PATH, SCREEN_SIZE, \
 					WINDOW_SIZE, SCREEN_COLOR, USE_CUDA, SR, BIT_WIDTH, \
-					CHANNELS, TEST_BATCH_SIZE, SPREAD, OSC
+					CHANNELS, TEST_BATCH_SIZE, SPREAD, OSC, LAMBDA
 
 
 # Conditionally Import OSC:
@@ -32,8 +32,8 @@ num_classes = len(set(latent_y))
 
 # Get PCA embedding
 pca = PCA(n_components=2, whiten=True)
-projections = pca.fit_transform(latent_data)
-class_vectors = np.eye(latent_dim)[:num_classes]
+pca.fit(latent_data)
+class_vectors = np.eye(latent_dim)[:num_classes] * LAMBDA
 projections = pca.transform(class_vectors)
 # c_dict = {0:"red", 1:"blue", 2:"green"}
 # colors = [c_dict[i] for i in latent_y]
