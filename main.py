@@ -1,4 +1,5 @@
 import math
+import asyncio
 
 import pygame
 from sklearn.decomposition import PCA
@@ -8,24 +9,43 @@ import torch #1.2.0
 import soundfile as sf
 import colorsys
 from scipy.ndimage.filters import gaussian_filter
+import matplotlib.pyplot as plt
+
 from model import GrainVAE
 from granulator import Granulator
 from utils import load_data
 from config import 	MODEL_PATH, EMBEDDINGS_PATH, DATA_PATH, SCREEN_SIZE, \
 					WINDOW_SIZE, SCREEN_COLOR, USE_CUDA, SR, BIT_WIDTH, \
-					CHANNELS, TEST_BATCH_SIZE, SPREAD
+					CHANNELS, TEST_BATCH_SIZE, SPREAD, OSC, LAMBDA
 
+
+# Conditionally Import OSC:
+osc_str = input("Would you like to use OSC for traversing through latent space? (y/N)")
+if osc_str == 'y' or osc_str=='Y':
+	OSC = True
+	import osc_latent
 
 # Get latent data
-latent_data = load_data(EMBEDDINGS_PATH)
+latent_data, latent_y = np.load(EMBEDDINGS_PATH), np.load(EMBEDDINGS_PATH[:-4] + "_y" + ".npy")
 latent_dim = latent_data.shape[1]
+num_classes = len(set(latent_y))
 
 # Get PCA embedding
 pca = PCA(n_components=2, whiten=True)
 pca.fit(latent_data)
+class_vectors = np.eye(latent_dim)[:num_classes] * LAMBDA
+projections = pca.transform(class_vectors)
+# c_dict = {0:"red", 1:"blue", 2:"green"}
+# colors = [c_dict[i] for i in latent_y]
+# plt.scatter(projections[:, 0], projections[:, 1], c=colors)
+# # plt.xlim([-0.01, 0.01])
+# # plt.ylim([-0.01, 0.01])
+# plt.show()
+# import pdb;pdb.set_trace()
+
 
 # Prepare inverse NSGT transform
-grain = load_data(DATA_PATH)[0]
+grain = load_data(DATA_PATH)[0][0]
 grain_length = len(grain)
 scale = nsgt.MelScale(20, 22050, 24)
 transform = nsgt.NSGT(scale, SR, grain_length, real=True, matrixform=True, reducedform=False)
@@ -46,6 +66,8 @@ if USE_CUDA:
 
 # Initialize PyGame
 pygame.init()
+pygame.font.init()
+font = pygame.font.SysFont('arial', 30)
 
 # Init Granulator
 gran = Granulator()
@@ -70,10 +92,9 @@ def get_latent_vector(pos, variance = 0):
 	z_mean = torch.Tensor(z_mean)
 	# get batch around that latent vector with variance
 	z = z_mean + variance * torch.randn(TEST_BATCH_SIZE, latent_dim)
-	print(z_mean, z)
 	if USE_CUDA:
-		z.cuda()
-		z_mean.cuda()
+		z = z.cuda()
+		z_mean = z_mean.cuda()
 	return z_mean, z
 
 def update_audio(z):
@@ -100,7 +121,7 @@ def draw_background_circles(z):
 	saturation = 1
 	value = 1
 	sqrt_num_circles = int(math.sqrt(latent_dim))
-	z = z.numpy()[0]
+	z = z.cpu().numpy()[0]
 	min_z = np.min(z)
 	max_z = np.max(z)
 	if min_z != max_z: # avoid divide by zero
@@ -124,44 +145,90 @@ def distort(surface, blur = .25):
 
 	surface.blit(distorted, (0, 0))
 
-# Start Audio
-gran.start_audio_stream()
+def draw_latent_projections(projections, window):
+	saturation = 1
+	value = 1
 
-circle_pos = np.array([SCREEN_SIZE/2, SCREEN_SIZE/2])
-z_mean, z = get_latent_vector(circle_pos, SPREAD)
-update_audio(z)
+	text_and_rects = []
+	for i, position in enumerate(projections):
+		# print(position, SCREEN_SIZE)
+		position = (position + 3) * SCREEN_SIZE / 6 # screen goes from coordinates -3 to 3
+
+		hue = i / num_classes
+		color = np.array(colorsys.hsv_to_rgb(hue,saturation,value))
+		color = list((255*color).astype(np.int))
+		pygame.draw.circle(screen, color, position, 1)
+		text = font.render(f"{i}", True, (0, 0, 0))
+		textRect = text.get_rect()
+		textRect.center = position * WINDOW_SIZE / SCREEN_SIZE
+		window.blit(text, textRect)
 
 # Run PyGame Loop
-running = True
-while running:
-	# get mouse position in [0, 1]
-	mouse_pos = np.array(pygame.mouse.get_pos()) * SCREEN_SIZE / WINDOW_SIZE
+async def main_loop():
 
-	# draw
-	screen.fill(SCREEN_COLOR)
-	draw_background_circles(z_mean)
-	distort(screen)
-	pygame.draw.circle(screen, (0,0,0), circle_pos, (SCREEN_SIZE/50))
-	# Did the user click the window close button?
-	for event in pygame.event.get():
-		if event.type == pygame.QUIT:
-			running = False
+	gran.start_audio_stream()
 
-		# On Mouse Button Up
-		if event.type == pygame.MOUSEBUTTONUP:
-			z_mean, z = get_latent_vector(circle_pos, SPREAD)
-			update_audio(z)
+	circle_pos = np.array([SCREEN_SIZE/2, SCREEN_SIZE/2])
+	z_mean, z = get_latent_vector(circle_pos, SPREAD)
+	update_audio(z)
+	coordinates = np.zeros(2)
+	old_coordinates = np.zeros(2)
 
-	# If mouse being pressed
-	if pygame.mouse.get_pressed()[0]:
-		circle_pos = mouse_pos
-		z_mean, z = get_latent_vector(circle_pos, SPREAD)
-		update_audio(z)
+	# Run PyGame Loop
+	running = True
+	while running:
+		# get mouse position in [0, 1]
+		if OSC:
+			old_coordinates = coordinates
+			coordinates = osc_latent.osc_handler.get_osc_coordinates() * SCREEN_SIZE
+		else:
+			coordinates = np.array(pygame.mouse.get_pos()) * SCREEN_SIZE / WINDOW_SIZE
 
-	transformed_screen = pygame.transform.scale(screen,(WINDOW_SIZE, WINDOW_SIZE))
-	win.blit(transformed_screen, (0, 0))
+		# draw
+		screen.fill(SCREEN_COLOR)
+		draw_background_circles(z_mean)
+		distort(screen)
+		pygame.draw.circle(screen, (0,0,0), circle_pos, (SCREEN_SIZE/50))
+		# Did the user click the window close button?
+		for event in pygame.event.get():
+			if event.type == pygame.QUIT:
+				running = False
+
+			# On Mouse Button Up
+			if event.type == pygame.MOUSEBUTTONUP:
+				z_mean, z = get_latent_vector(circle_pos, SPREAD)
+				update_audio(z)
+
+		# If mouse being pressed
+		if OSC:
+			if not np.array_equal(coordinates, old_coordinates):
+				circle_pos = coordinates
+				z_mean, z = get_latent_vector(circle_pos, SPREAD)
+				update_audio(z)
+		else:
+			if pygame.mouse.get_pressed()[0]:
+				circle_pos = coordinates
+				z_mean, z = get_latent_vector(circle_pos, SPREAD)
+				update_audio(z)
+
+		transformed_screen = pygame.transform.scale(screen,(WINDOW_SIZE, WINDOW_SIZE))
+		win.blit(transformed_screen, (0, 0))
+		draw_latent_projections(projections, win)
 		
-	pygame.display.flip()
+			
+		pygame.display.flip()
 
-# Done! Time to quit.
-pygame.quit()
+	# Done! Time to quit.
+	pygame.quit()
+
+if OSC:
+	async def init_osc_latent():
+		server = osc_latent.osc_server.AsyncIOOSCUDPServer(
+				(osc_latent.IP, osc_latent.PORT), osc_latent.dispatcher,
+				asyncio.get_event_loop())
+		transport, protocol = await server.create_serve_endpoint()
+		await main_loop()
+		transport.close()
+	asyncio.run(init_osc_latent())
+else :
+	asyncio.run(main_loop())

@@ -61,10 +61,13 @@ class GrainVAE(nn.Module):
 
 		self.log_scale = nn.Parameter(torch.Tensor([0.0]))
 
-	def train_step(self, x, beta):
+	def train_step(self, x, beta, y=None, lmbda=1):
 		"""
 		x is an input grain batch, batch_size x grain_length
 		beta is the regularizer from Beta-VAE
+		y is label batch
+		lmbda is lambda-hot vector term that represents how far apart
+			different classes should be in the latent space
 		"""
 
 		# encode x to get mu and std
@@ -80,11 +83,13 @@ class GrainVAE(nn.Module):
 
 		# Get Reconstruction Loss
 		reconstruction_loss = self.reconstruction_loss(x_hat, x)
-		kl_loss = self.kl_divergence_loss(z, mu, std)
+
+		# Get KL Loss
+		kl_loss = self.kl_divergence_loss(z, mu, std, y, lmbda)
 		#print(reconstruction_loss.mean(), kl_loss.mean())
 		elbo = (beta*kl_loss - reconstruction_loss).mean()
 
-		return elbo
+		return elbo, beta*kl_loss.mean(), -reconstruction_loss.mean()
 
 	def encoder(self, x):
 		x = F.relu(self.fc1(x))
@@ -109,12 +114,17 @@ class GrainVAE(nn.Module):
 		log_pxz = log_pxz.sum(dim=(1)) # sum across output channel
 		return log_pxz
 
-	def kl_divergence_loss(self, z, mu, std):
+	def kl_divergence_loss(self, z, mu, std, y=None, lmbda=1):
 		# --------------------------
 		# Monte carlo KL divergence
 		# --------------------------
 		# 1. define the first two probabilities (in this case Normal for both)
-		p = torch.distributions.Normal(torch.zeros_like(mu), torch.ones_like(std))
+		if y is None:
+			p = torch.distributions.Normal(torch.zeros_like(mu), torch.ones_like(std))
+		else:
+			mean = F.one_hot(y, z.shape[1])
+			mean = mean.float().cuda() * lmbda
+			p = torch.distributions.Normal(mean, torch.ones_like(std))
 		q = torch.distributions.Normal(mu, std)
 
 		# 2. get the probabilities from the equation
