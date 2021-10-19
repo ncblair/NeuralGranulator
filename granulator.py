@@ -37,7 +37,7 @@ class Voice:
 		self.sample_rate = sample_rate
 
 		# Hardcode envelope for now
-		self.envelope = ADSREnvelope(1,0.2,0.7,0.3,self.sample_rate)
+		# self.envelope = ADSREnvelope(1,0.2,0.7,0.3,self.sample_rate)
 	
 	def pitch_voice(self, note):
 		self.grain = librosa.resample(self.grain, 
@@ -52,7 +52,7 @@ class Voice:
 
 		self.grain = grain
 		self.index_grain = 0
-		if self.note not 60:
+		if self.note != 60:
 			pitch_voice(note)
 
 	def note_on(self, grain, note):
@@ -63,11 +63,13 @@ class Voice:
 
 	def note_release(self):
 		# start release, when done, set trigger to false
+		return
 	
 	def get_audio_data(self, size):
 		# audio buffer = grab the smoothed grain and multiply it by current enevelope ?????
 		# increment envelope and grain index by size
 		# return audio buffer
+		return
 
 		
 		
