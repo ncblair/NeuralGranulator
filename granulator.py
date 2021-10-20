@@ -5,6 +5,7 @@ import math
 import rtmidi.midiutil
 from collections import deque
 from scipy.signal import tukey, triang
+from ADSREnvelope import ADSREnvelope
 
 from config import MAX_GRAIN_HISTORY, OVERLAP, NUM_OVERLAPS, SR
 
@@ -39,7 +40,7 @@ class Voice:
 		self.sample_rate = sample_rate
 
 		# Hardcode envelope for now
-		# self.envelope = ADSREnvelope(1,0.2,0.7,0.3,self.sample_rate)
+		self.env = ADSREnvelope(1.0,1.3,0.5,0.3,sample_rate)
 	
 	def pitch_voice(self, note):
 		if note == 60:
@@ -62,6 +63,7 @@ class Voice:
 		self.pitch_voice(note)
 		self.index_grain = 0
 		self.note = note
+		self.env.trigger()
 		# init envelope 
 		self.trigger = True
 	
@@ -73,8 +75,7 @@ class Voice:
 
 
 	def note_release(self):
-		self.trigger = False
-		# start release, when done, set trigger to false
+		self.env.release()
 		return
 	
 	def get_audio_data(self, frame_count):
@@ -82,9 +83,13 @@ class Voice:
 		g = self.get_smoothed_grain()
 		idx = np.arange(self.index_grain, self.index_grain + frame_count)
 		data = np.take(g, idx, mode="wrap") 
-
+		env_data = self.env.get_audio_data(frame_count)
+		data *= env_data
 		# increment envelope and grain index by size
 		self.index_grain = (self.index_grain + frame_count) % len(g)
+
+		if self.env.is_done():
+			self.trigger = False
 
 		# return audio buffer
 		return data
@@ -96,6 +101,7 @@ class Granulator:
 		# the actual grain
 		# 0 not ready, need to apply pitch shift, 1 : ready for audio loop
 		self.MAX_VOICES = 12
+		self.frames_per_buffer = None
 		self.grains = {i:[0, np.array([0]), 0] for i in range(128)}
 		self.counter = {i: 0 for i in range(128)}
 		self.voices = []
@@ -115,7 +121,13 @@ class Granulator:
 	def init_audio_stream(self, sample_rate, bit_width, num_channels):
 		self.sample_rate = sample_rate
 		self.pya = pyaudio.PyAudio()
-		self.stream = self.pya.open(format=self.pya.get_format_from_width(width=bit_width), channels=num_channels, rate=sample_rate, output=True, stream_callback=self.audio_callback)
+		self.stream = self.pya.open(format=self.pya.get_format_from_width(width=bit_width), 
+						channels=num_channels, 
+						rate=sample_rate, 
+						output=True, 
+						stream_callback=self.audio_callback
+					)
+		self.frames_per_buffer = self.stream._frames_per_buffer
 	
 	def init_midi(self):
 		want_midi = input("Would you like to use MIDI? (y/N)")
