@@ -8,12 +8,7 @@ import numpy as np
 from pygame.locals import *
 
 
-pygame.init()
-screen = pygame.display.set_mode((800, 600))
-screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-screenColor = (255,255,255)
-screen.fill(screenColor)
-pygame.display.update(pygame.Rect(0,0,800,600))
+
 
 class Knob :
    
@@ -39,7 +34,7 @@ class Knob :
        
         pygame.display.update(pygame.Rect(self.x,self.y,self.width,self.height))
 
-    def draw(self):
+    def draw(self, mouse, click):
         if click[0] == 0 and self.drag_mode == True:
             self.drag_mode = False
 
@@ -73,6 +68,12 @@ class Knob :
     
 
 if __name__ == "__main__":
+    pygame.init()
+    screen = pygame.display.set_mode((800, 600))
+    screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+    screenColor = (255,255,255)
+    screen.fill(screenColor)
+    pygame.display.update(pygame.Rect(0,0,800,600))
     knob = Knob(screen,100,50,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5)
     while True:
         for event in pygame.event.get():
@@ -83,7 +84,5 @@ if __name__ == "__main__":
                 if event.key == K_ESCAPE:
                     pygame.quit()
                     sys.exit()
-            mouse = pygame.mouse.get_pos()
-            click = pygame.mouse.get_pressed()
         
-        knob.draw()
+        knob.draw(pygame.mouse.get_pos(), pygame.mouse.get_pressed())

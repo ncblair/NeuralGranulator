@@ -102,8 +102,8 @@ class Granulator:
 		# 0 not ready, need to apply pitch shift, 1 : ready for audio loop
 		self.MAX_VOICES = 12
 		self.frames_per_buffer = None
-		self.grains = {i:[0, np.array([0]), 0] for i in range(128)}
-		self.counter = {i: 0 for i in range(128)}
+		# self.grains = {i:[0, np.array([0]), 0] for i in range(128)}
+		# self.counter = {i: 0 for i in range(128)}
 		self.voices = []
 		for i in range(self.MAX_VOICES):
 			self.voices.append(Voice(SR))		

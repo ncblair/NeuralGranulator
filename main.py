@@ -14,9 +14,10 @@ import matplotlib.pyplot as plt
 from model import GrainVAE
 from granulator import Granulator
 from utils import load_data
+from gui import Knob
 from config import 	MODEL_PATH, EMBEDDINGS_PATH, DATA_PATH, SCREEN_SIZE, \
 					WINDOW_SIZE, SCREEN_COLOR, USE_CUDA, SR, BIT_WIDTH, \
-					CHANNELS, TEST_BATCH_SIZE, SPREAD, OSC, LAMBDA
+					CHANNELS, TEST_BATCH_SIZE, SPREAD, OSC, LAMBDA, GUI_SIZE
 
 
 # Conditionally Import OSC:
@@ -76,8 +77,9 @@ gran.init_audio_stream(SR, BIT_WIDTH, CHANNELS)
 gran.init_midi()
 
 # Set up the drawing window
-win = pygame.display.set_mode([WINDOW_SIZE, WINDOW_SIZE])
+win = pygame.display.set_mode([2*WINDOW_SIZE, WINDOW_SIZE])
 screen = pygame.Surface((SCREEN_SIZE, SCREEN_SIZE))
+gui = pygame.Surface((GUI_SIZE, GUI_SIZE))
 
 circle_pos = (SCREEN_SIZE/2, SCREEN_SIZE/2)
 circle_size = SCREEN_SIZE/50
@@ -113,7 +115,7 @@ def update_audio(z):
 	gran.replace_grain(audio_out)
 
 
-def draw_background_circles(z):
+def draw_background_circles(z, sceren):
 	"""
 	visualize the latent space as HUE
 	z: latent vector
@@ -136,7 +138,7 @@ def draw_background_circles(z):
 			size = circle_size # + np.random.rand()*circle_size_variance
 			pygame.draw.circle(screen, color, position, size)
 
-def distort(surface, blur = .25):
+def distort(surface, screen, blur = .25):
 	imgdata = pygame.surfarray.array3d(surface)
 	# noisy = imgdata - np.random.rand(*imgdata.shape) * 50
 	# noisy = np.clip(noisy, 0, 255)
@@ -163,6 +165,15 @@ def draw_latent_projections(projections, window):
 		textRect.center = position * WINDOW_SIZE / SCREEN_SIZE
 		window.blit(text, textRect)
 
+
+# GUI
+
+knobs = {"attack":Knob(gui,100,50,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5), 
+		"decay":Knob(gui,200,50,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5),
+		"release":Knob(gui,100,150,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5),
+		"sustain":Knob(gui,200,150,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5),
+		"variance":Knob(gui,300,50,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5)}
+
 # Run PyGame Loop
 async def main_loop():
 
@@ -178,17 +189,23 @@ async def main_loop():
 	running = True
 	while running:
 		# get mouse position in [0, 1]
+		mouse_pos = pygame.mouse.get_pos()
 		if OSC:
 			old_coordinates = coordinates
 			coordinates = osc_latent.osc_handler.get_osc_coordinates() * SCREEN_SIZE
 		else:
-			coordinates = np.array(pygame.mouse.get_pos()) * SCREEN_SIZE / WINDOW_SIZE
+			coordinates = np.array(mouse_pos) * SCREEN_SIZE / WINDOW_SIZE
 
 		# draw
 		screen.fill(SCREEN_COLOR)
-		draw_background_circles(z_mean)
-		distort(screen)
+		gui.fill((0, 0, 0))
+		draw_background_circles(z_mean, screen)
+		distort(screen, screen)
 		pygame.draw.circle(screen, (0,0,0), circle_pos, (SCREEN_SIZE/50))
+		for knob_name in knobs:
+			knob = knobs[knob_name]
+			knob.draw(mouse_pos, pygame.mouse.get_pressed())
+
 		# Did the user click the window close button?
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
@@ -212,7 +229,9 @@ async def main_loop():
 				update_audio(z)
 
 		transformed_screen = pygame.transform.scale(screen,(WINDOW_SIZE, WINDOW_SIZE))
+		transformed_gui = pygame.transform.scale(gui, (WINDOW_SIZE, WINDOW_SIZE))
 		win.blit(transformed_screen, (0, 0))
+		win.blit(transformed_gui, (WINDOW_SIZE, 0))
 		draw_latent_projections(projections, win)
 		
 			
