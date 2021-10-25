@@ -182,8 +182,8 @@ async def main_loop():
 	circle_pos = np.array([SCREEN_SIZE/2, SCREEN_SIZE/2])
 	z_mean, z = get_latent_vector(circle_pos, SPREAD)
 	update_audio(z)
-	coordinates = np.zeros(2)
-	old_coordinates = np.zeros(2)
+	coords = np.zeros(2)
+	old_coords = np.zeros(2)
 
 	# Run PyGame Loop
 	running = True
@@ -191,20 +191,21 @@ async def main_loop():
 		# get mouse position in [0, 1]
 		mouse_pos = pygame.mouse.get_pos()
 		if OSC:
-			old_coordinates = coordinates
-			coordinates = osc_latent.osc_handler.get_osc_coordinates() * SCREEN_SIZE
+			old_coords = coords
+			coords = osc_latent.osc_handler.get_osc_coordinates() * SCREEN_SIZE
 		else:
-			coordinates = np.array(mouse_pos) * SCREEN_SIZE / WINDOW_SIZE
+			coords = np.array(mouse_pos) * SCREEN_SIZE / WINDOW_SIZE
+			gui_coords = (np.array(mouse_pos) - np.array([WINDOW_SIZE, 0])) * GUI_SIZE / WINDOW_SIZE
 
 		# draw
 		screen.fill(SCREEN_COLOR)
-		gui.fill((0, 0, 0))
+		gui.fill(SCREEN_COLOR)
 		draw_background_circles(z_mean, screen)
-		distort(screen, screen)
+		# distort(screen, screen)
 		pygame.draw.circle(screen, (0,0,0), circle_pos, (SCREEN_SIZE/50))
 		for knob_name in knobs:
 			knob = knobs[knob_name]
-			knob.draw(mouse_pos, pygame.mouse.get_pressed())
+			knob.draw(gui_coords, pygame.mouse.get_pressed())
 
 		# Did the user click the window close button?
 		for event in pygame.event.get():
@@ -218,13 +219,13 @@ async def main_loop():
 
 		# If mouse being pressed
 		if OSC:
-			if not np.array_equal(coordinates, old_coordinates):
-				circle_pos = coordinates
+			if not np.array_equal(coords, old_coords):
+				circle_pos = coords
 				z_mean, z = get_latent_vector(circle_pos, SPREAD)
 				update_audio(z)
 		else:
 			if pygame.mouse.get_pressed()[0]:
-				circle_pos = coordinates
+				circle_pos = coords
 				z_mean, z = get_latent_vector(circle_pos, SPREAD)
 				update_audio(z)
 

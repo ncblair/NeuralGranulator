@@ -7,7 +7,7 @@ import numpy as np
 
 from pygame.locals import *
 
-
+from config import WINDOW_SIZE
 
 
 class Knob :
@@ -16,10 +16,11 @@ class Knob :
         self.INCREMENT_RES = 64
         self.drag_mode = False
         self.screen = screen
-        self.x = sx
-        self.y = sy
-        self.width = width
-        self.height = height
+        self.screen_size = self.screen.get_width()
+        self.x = sx * self.screen_size / WINDOW_SIZE
+        self.y = sy * self.screen_size / WINDOW_SIZE
+        self.width = width * self.screen_size / WINDOW_SIZE
+        self.height = height * self.screen_size / WINDOW_SIZE
         self.bg_color = bg_color
         self.fg_color = fg_color
         self.max_val = max_val
@@ -32,9 +33,12 @@ class Knob :
         pygame.draw.arc(self.screen,self.bg_color, (self.x,self.y,self.width,self.height), -0.25*math.pi, -0.75*math.pi, 10)
         pygame.draw.arc(self.screen,self.fg_color, (self.x,self.y,self.width,self.height),-0.25*math.pi + (1.5 * math.pi * (val_norm)) , 1.25*math.pi, 10)
        
-        pygame.display.update(pygame.Rect(self.x,self.y,self.width,self.height))
+        # pygame.display.update(pygame.Rect(self.x,self.y,self.width,self.height))
+
 
     def draw(self, mouse, click):
+        mouseY = mouse[1]
+
         if click[0] == 0 and self.drag_mode == True:
             self.drag_mode = False
 
@@ -43,7 +47,6 @@ class Knob :
             self.drag_mode = True
         
         if self.drag_mode and click[0] == 1:
-            mouseY = mouse[1]
             mouseY_diff = mouseY - self.old_mouseY
             # print(mouseY, self.old_mouseY)
             if mouseY_diff < 0:
@@ -52,16 +55,15 @@ class Knob :
                 self.cur_val = np.clip(self.cur_val + self.incr, self.min_val, self.max_val)
 
 
-            val_norm = (float(self.min_val + self.cur_val)) / (self.max_val - self.min_val)
+        val_norm = (float(self.min_val + self.cur_val)) / (self.max_val - self.min_val)
 
-            pygame.draw.arc(self.screen,self.bg_color, (self.x,self.y,self.width,self.height), -0.25*math.pi, -0.75*math.pi, 10)
-           
-            pygame.draw.arc(self.screen,self.fg_color, (self.x,self.y,self.width,self.height),-0.25*math.pi + (1.5 * math.pi * (val_norm)) , 1.25*math.pi, 10)
+        pygame.draw.arc(self.screen,self.bg_color, (self.x,self.y,self.width,self.height), -0.25*math.pi, -0.75*math.pi, 10)
+       
+        pygame.draw.arc(self.screen,self.fg_color, (self.x,self.y,self.width,self.height),-0.25*math.pi + (1.5 * math.pi * (val_norm)) , 1.25*math.pi, 10)
 
-            pygame.display.update(pygame.Rect(self.x,self.y,self.width,self.height))
+        # pygame.display.update(pygame.Rect(self.x,self.y,self.width,self.height))
             
-            if self.old_mouseY != mouseY:
-                self.old_mouseY = mouseY
+        self.old_mouseY = mouseY
         
         return self.cur_val
 
