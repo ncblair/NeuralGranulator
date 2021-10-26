@@ -10,7 +10,8 @@
 		<script src="https://unpkg.com/ml5@latest/dist/ml5.min.js"></script>
 	</head>
 	<body>
-		<script src="osc-browser.js"></script>
+        <script src="LIBRARIES/socket.io.js"></script>
+<!--		<script src="osc-browser.js"></script>-->
 		<!-- SCRIPT -->
 		<script>
 			//EVERYTHING IN LOCAL COORDS TILL ITS TIME TO DRAW
@@ -18,7 +19,8 @@
 			const dev_w = 1440;
 			const dev_h = 899;
 			const knob_w = 64;
-			const port = 57121; // osc port
+			const port_in = 12000; // osc port
+            const port_out = 57121;
 			const secondary_color = "#FFD300";
 			
 			let bg_img;
@@ -26,6 +28,7 @@
 			let winHeight;
 			let winWidth;
 			let socket; // osc
+            let latent_vis
 			
 			
 			function setWindowSize() {
@@ -203,11 +206,7 @@
 				
 				stroke(secondary_color);
 
-				// osc https://editor.p5js.org/oshoham/sketches/2qjaSG71_
-				socket = new osc.WebSocketPort({url: 'ws://localhost:' + port});
-				socket.on("message", handleOsc);
-				socket.on("ready", sendOsc);
-				socket.open();
+				setupOsc(port_in, port_out);
 			}
 
 			function draw() {
@@ -252,40 +251,38 @@
 				compass_screen.resizeCanvas(globalx(507), globaly(507));
 			}
 
-			function handleOsc(msg) {
-				print(msg);
-			}
-			
-			function sendOsc() {
-				oscPort.send({
-					// Tags this bundle with a timestamp that is 60 seconds from now.
-					// Note that the message will be sent immediately;
-					// the receiver should use the time tag to determine
-					// when to act upon the received message.
-					timeTag: osc.timeTag(60),
+            // https://github.com/genekogan/p5js-osc/blob/master/p5-basic/sketch.js
+            function receiveOsc(address, value) {
+                console.log("received OSC: " + address + ", " + value);
 
-					packets: [
-						{
-							address: "/carrier/frequency",
-							args: [
-								{
-									type: "f",
-									value: 440
-								}
-							]
-						},
-						{
-							address: "/carrier/amplitude",
-							args: [
-								{
-									type: "f",
-									value: 0.5
-								}
-							]
-						}
-					]
-				});
-			}
+                if (address == '/test') {
+                    x = value[0];
+                    y = value[1];
+                }
+            }
+
+            function sendOsc(address, value) {
+                socket.emit('message', [address].concat(value));
+            }
+
+            function setupOsc(oscPortIn, oscPortOut) {
+                var socket = io.connect('http://127.0.0.1:8081', { port: 8081, rememberTransport: false });
+                socket.on('connect', function() {
+                    socket.emit('config', {
+                        server: { port: oscPortIn,  host: '127.0.0.1'},
+                        client: { port: oscPortOut, host: '127.0.0.1'}
+                    });
+                });
+                socket.on('message', function(msg) {
+                    if (msg[0] == '#bundle') {
+                        for (var i=2; i<msg.length; i++) {
+                            receiveOsc(msg[i][0], msg[i].splice(1));
+                        }
+                    } else {
+                        receiveOsc(msg[0], msg.splice(1));
+                    }
+                });
+            }
 		</script>
 		<!-- STYLE -->
 		<style>
