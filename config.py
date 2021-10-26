@@ -5,7 +5,7 @@ import os
 PATH = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model_lambda2.pt")
 AUDIO_OUT_FOL = os.path.join(PATH, "OUTPUT")
-DATA_PATH = os.path.join(PATH, "DATA")
+DATA_PATH = os.path.join(PATH, "DATA", "nsynth")
 EMBEDDINGS_PATH = os.path.join(PATH, "EMBEDDINGS", "latents_lambda2.npy")
 AUDIO_FOLDER = os.path.join(PATH, "INPUT")
 LABEL_KEYFILE = os.path.join(PATH, "label_mapping.txt")
@@ -38,7 +38,7 @@ if CONTINUE == True and not os.path.exists(MODEL_PATH):
 
 # USER INTERFACE
 SCREEN_SIZE = 250
-GUI_SIZE = 750
+GUI_SIZE = 250
 WINDOW_SIZE = 750
 SCREEN_COLOR = (255, 255, 255)
 

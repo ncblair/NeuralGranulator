@@ -26,7 +26,7 @@ class ADSREnvelope:
 		self.r_data =  None # must be generate on the fly
 
 		# Preallocate sustain data and zero data for SPEED
-		self.s_data = np.array([sustain_level]*frames_per_buffer)
+		self.s_data = np.array([sustain_level]*self.frames_per_buffer)
 		self.zeros = np.zeros(frames_per_buffer)
 	
 	def set(self, attack_dur=0.05, decay_dur=0.2, sustain_level=0.7, \
@@ -50,7 +50,7 @@ class ADSREnvelope:
 
 		self.r_data =  None # must be generated on the fly
 
-		self.s_data = np.array([sustain_level]*frames_per_buffer)
+		self.s_data = np.array([sustain_level]*self.frames_per_buffer)
 	
 	def trigger(self):
 		self.ads_index = 0

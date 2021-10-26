@@ -168,12 +168,6 @@ def draw_latent_projections(projections, window):
 
 # GUI
 
-knobs = {"attack":Knob(gui,100,50,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5), 
-		"decay":Knob(gui,200,50,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5),
-		"release":Knob(gui,100,150,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5),
-		"sustain":Knob(gui,200,150,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5),
-		"variance":Knob(gui,300,50,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5)}
-
 # Run PyGame Loop
 async def main_loop():
 
@@ -182,8 +176,15 @@ async def main_loop():
 	circle_pos = np.array([SCREEN_SIZE/2, SCREEN_SIZE/2])
 	z_mean, z = get_latent_vector(circle_pos, SPREAD)
 	update_audio(z)
-	coordinates = np.zeros(2)
-	old_coordinates = np.zeros(2)
+	coords = np.zeros(2)
+	old_coords = np.zeros(2)
+	
+	is_gui_element_active = False
+	knobs = {"attack":Knob(gui,100,50,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5), 
+			"decay":Knob(gui,200,50,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5),
+			"release":Knob(gui,100,150,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5),
+			"sustain":Knob(gui,200,150,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5),
+			"variance":Knob(gui,300,50,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5)}
 
 	# Run PyGame Loop
 	running = True
@@ -191,20 +192,18 @@ async def main_loop():
 		# get mouse position in [0, 1]
 		mouse_pos = pygame.mouse.get_pos()
 		if OSC:
-			old_coordinates = coordinates
-			coordinates = osc_latent.osc_handler.get_osc_coordinates() * SCREEN_SIZE
+			old_coords = coords
+			coords = osc_latent.osc_handler.get_osc_coordinates() * SCREEN_SIZE
 		else:
-			coordinates = np.array(mouse_pos) * SCREEN_SIZE / WINDOW_SIZE
+			coords = np.array(mouse_pos) * SCREEN_SIZE / WINDOW_SIZE
+			gui_coords = (np.array(mouse_pos) - np.array([WINDOW_SIZE, 0])) * GUI_SIZE / WINDOW_SIZE
 
 		# draw
 		screen.fill(SCREEN_COLOR)
-		gui.fill((0, 0, 0))
+		gui.fill(SCREEN_COLOR)
 		draw_background_circles(z_mean, screen)
-		distort(screen, screen)
+		# distort(screen, screen)
 		pygame.draw.circle(screen, (0,0,0), circle_pos, (SCREEN_SIZE/50))
-		for knob_name in knobs:
-			knob = knobs[knob_name]
-			knob.draw(mouse_pos, pygame.mouse.get_pressed())
 
 		# Did the user click the window close button?
 		for event in pygame.event.get():
@@ -215,16 +214,30 @@ async def main_loop():
 			if event.type == pygame.MOUSEBUTTONUP:
 				z_mean, z = get_latent_vector(circle_pos, SPREAD)
 				update_audio(z)
+				is_mouse_down = False
+
+		is_a_knob_active = False
+		for knob_name in knobs:
+			knob = knobs[knob_name]
+			is_a_knob_active = knob.draw(gui_coords, pygame.mouse.get_pressed(), \
+				not is_gui_element_active) or is_a_knob_active
+		is_gui_element_active = is_a_knob_active
+
+		if len([ 1 for knob_name in knobs \
+			if knobs[knob_name].cur_val != knobs[knob_name].old_val]) \
+				> 0 :
+			gran.set_envs(knobs["attack"].cur_val,knobs["decay"].cur_val, \
+				knobs["sustain"].cur_val, knobs["release"].cur_val)
 
 		# If mouse being pressed
 		if OSC:
-			if not np.array_equal(coordinates, old_coordinates):
-				circle_pos = coordinates
+			if not np.array_equal(coords, old_coords):
+				circle_pos = coords
 				z_mean, z = get_latent_vector(circle_pos, SPREAD)
 				update_audio(z)
 		else:
 			if pygame.mouse.get_pressed()[0]:
-				circle_pos = coordinates
+				circle_pos = coords
 				z_mean, z = get_latent_vector(circle_pos, SPREAD)
 				update_audio(z)
 
@@ -236,6 +249,7 @@ async def main_loop():
 		
 			
 		pygame.display.flip()
+		await asyncio.sleep(0)
 
 	# Done! Time to quit.
 	pygame.quit()

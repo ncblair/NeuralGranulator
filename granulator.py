@@ -97,13 +97,12 @@ class Voice:
 class Granulator:
 
 	def __init__(self):
-		# 0 if note off, 1 if note on
-		# the actual grain
-		# 0 not ready, need to apply pitch shift, 1 : ready for audio loop
 		self.MAX_VOICES = 12
 		self.frames_per_buffer = None
-		# self.grains = {i:[0, np.array([0]), 0] for i in range(128)}
-		# self.counter = {i: 0 for i in range(128)}
+		self.attack = 0.1
+		self.decay = 0.2
+		self.sustain = 0.7
+		self.release = 0.25
 		self.voices = []
 		for i in range(self.MAX_VOICES):
 			self.voices.append(Voice(SR))		
@@ -111,6 +110,12 @@ class Granulator:
 	def __del__(self):
 		self.close_audio_stream()
 		self.close_midi_port()
+	
+	def set_envs(self, attack, decay, sustain, release):
+		self.attack = attack
+		self.decay = decay
+		self.sustain = sustain
+		self.release = release
 	
 	def replace_grain(self, grain):
 		for voice in self.voices:
@@ -158,6 +163,7 @@ class Granulator:
 		if len(available_voices) < 1:
 			print("OUT OF VOICES!")
 			return
+		available_voices[0].env.set(self.attack,self.decay,self.sustain,self.release)
 		available_voices[0].note_on(note)
 
 	def note_off(self, note):
