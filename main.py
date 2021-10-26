@@ -168,12 +168,6 @@ def draw_latent_projections(projections, window):
 
 # GUI
 
-knobs = {"attack":Knob(gui,100,50,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5), 
-		"decay":Knob(gui,200,50,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5),
-		"release":Knob(gui,100,150,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5),
-		"sustain":Knob(gui,200,150,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5),
-		"variance":Knob(gui,300,50,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5)}
-
 # Run PyGame Loop
 async def main_loop():
 
@@ -184,6 +178,13 @@ async def main_loop():
 	update_audio(z)
 	coords = np.zeros(2)
 	old_coords = np.zeros(2)
+	
+	is_gui_element_active = False
+	knobs = {"attack":Knob(gui,100,50,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5), 
+			"decay":Knob(gui,200,50,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5),
+			"release":Knob(gui,100,150,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5),
+			"sustain":Knob(gui,200,150,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5),
+			"variance":Knob(gui,300,50,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5)}
 
 	# Run PyGame Loop
 	running = True
@@ -203,9 +204,6 @@ async def main_loop():
 		draw_background_circles(z_mean, screen)
 		# distort(screen, screen)
 		pygame.draw.circle(screen, (0,0,0), circle_pos, (SCREEN_SIZE/50))
-		for knob_name in knobs:
-			knob = knobs[knob_name]
-			knob.draw(gui_coords, pygame.mouse.get_pressed())
 
 		# Did the user click the window close button?
 		for event in pygame.event.get():
@@ -216,6 +214,20 @@ async def main_loop():
 			if event.type == pygame.MOUSEBUTTONUP:
 				z_mean, z = get_latent_vector(circle_pos, SPREAD)
 				update_audio(z)
+				is_mouse_down = False
+
+		is_a_knob_active = False
+		for knob_name in knobs:
+			knob = knobs[knob_name]
+			is_a_knob_active = knob.draw(gui_coords, pygame.mouse.get_pressed(), \
+				not is_gui_element_active) or is_a_knob_active
+		is_gui_element_active = is_a_knob_active
+
+		if len([ 1 for knob_name in knobs \
+			if knobs[knob_name].cur_val != knobs[knob_name].old_val]) \
+				> 0 :
+			gran.set_envs(knobs["attack"].cur_val,knobs["decay"].cur_val, \
+				knobs["sustain"].cur_val, knobs["release"].cur_val)
 
 		# If mouse being pressed
 		if OSC:
@@ -237,6 +249,7 @@ async def main_loop():
 		
 			
 		pygame.display.flip()
+		await asyncio.sleep(0)
 
 	# Done! Time to quit.
 	pygame.quit()

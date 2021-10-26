@@ -5,7 +5,7 @@ import os
 PATH = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model_lambda2.pt")
 AUDIO_OUT_FOL = os.path.join(PATH, "OUTPUT")
-DATA_PATH = os.path.join(PATH, "DATA", "nsynth", "mini")
+DATA_PATH = os.path.join(PATH, "DATA", "nsynth")
 EMBEDDINGS_PATH = os.path.join(PATH, "EMBEDDINGS", "latents_lambda2.npy")
 AUDIO_FOLDER = os.path.join(PATH, "INPUT")
 LABEL_KEYFILE = os.path.join(PATH, "label_mapping.txt")
@@ -17,7 +17,7 @@ BIT_WIDTH = 4 # Number of bytes in a sample, 1, 2, 3, or 4, 4 = 32bit
 CHANNELS = 1
 
 # CUDA
-USE_CUDA = True
+USE_CUDA = False
 
 # DATA GENERATION
 SILENCE_CUTOFF = 0.05

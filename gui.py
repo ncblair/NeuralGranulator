@@ -26,6 +26,7 @@ class Knob :
         self.max_val = max_val
         self.min_val = min_val
         self.cur_val = start_val
+        self.old_val = start_val
         self.incr = (max_val - min_val) / self.INCREMENT_RES
         val_norm = (float(min_val + self.cur_val)) / (max_val - min_val)
         self.old_mouseY = 0
@@ -36,36 +37,37 @@ class Knob :
         # pygame.display.update(pygame.Rect(self.x,self.y,self.width,self.height))
 
 
-    def draw(self, mouse, click):
+    def draw(self, mouse, click, toggle_on):
         mouseY = mouse[1]
 
         if click[0] == 0 and self.drag_mode == True:
             self.drag_mode = False
 
         # if mouse[0] > sx and mouse[0] < sx+width and mouse[1] > sy and mouse[1] < sy+height:
-        if click[0] == 1 and mouse[0] > self.x and mouse[0] < self.x+self.width and mouse[1] > self.y and mouse[1] < self.y+self.height:
+        if toggle_on and click[0] == 1 and mouse[0] > self.x and mouse[0] < self.x+self.width and mouse[1] > self.y and mouse[1] < self.y+self.height:
             self.drag_mode = True
         
+        self.old_val = self.cur_val
         if self.drag_mode and click[0] == 1:
             mouseY_diff = mouseY - self.old_mouseY
             # print(mouseY, self.old_mouseY)
             if mouseY_diff < 0:
-                self.cur_val = np.clip(self.cur_val - self.incr, self.min_val, self.max_val)
-            elif mouseY_diff > 0:
                 self.cur_val = np.clip(self.cur_val + self.incr, self.min_val, self.max_val)
+            elif mouseY_diff > 0:
+                self.cur_val = np.clip(self.cur_val - self.incr, self.min_val, self.max_val)
 
 
         val_norm = (float(self.min_val + self.cur_val)) / (self.max_val - self.min_val)
 
         pygame.draw.arc(self.screen,self.bg_color, (self.x,self.y,self.width,self.height), -0.25*math.pi, -0.75*math.pi, 10)
        
-        pygame.draw.arc(self.screen,self.fg_color, (self.x,self.y,self.width,self.height),-0.25*math.pi + (1.5 * math.pi * (val_norm)) , 1.25*math.pi, 10)
+        pygame.draw.arc(self.screen,self.fg_color, (self.x,self.y,self.width,self.height),-0.25*math.pi + (1.5 * math.pi * (1-val_norm)) , 1.25*math.pi, 10)
 
         # pygame.display.update(pygame.Rect(self.x,self.y,self.width,self.height))
             
         self.old_mouseY = mouseY
-        
-        return self.cur_val
+    
+        return self.drag_mode
 
     
 
