@@ -194,8 +194,10 @@ async def main_loop():
 		if OSC:
 			old_coords = coords
 			coords = osc_latent.osc_handler.get_osc_coordinates() * SCREEN_SIZE
+			print(coords)
 		else:
 			coords = np.array(mouse_pos) * SCREEN_SIZE / WINDOW_SIZE
+
 		gui_coords = (np.array(mouse_pos) - np.array([WINDOW_SIZE, 0])) * GUI_SIZE / WINDOW_SIZE
 
 		# draw
