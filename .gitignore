@@ -3,4 +3,8 @@ DATA/
 EMBEDDINGS/
 __pycache__/
 
+# Node stuff
+INTERFACE/node_modules/
+
+# OSX stuff 
 *.DS_Store
