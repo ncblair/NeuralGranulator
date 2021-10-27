@@ -200,7 +200,9 @@ function draw() {
         knob.draw();
     }
     latent_vis.draw();
-    sendOsc("/1/xy1/", 1)
+    // RACE CONDITION BETWEEN SENDING OSC from client and the server setting up OSC
+    // Use this: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/await
+    //sendOsc("/1/xy1/", 1)
 }
 
 function mousePressed() {
@@ -252,7 +254,7 @@ function sendOsc(address, value) {
 }
 
 function setupOsc(oscPortIn, oscPortOut) {
-    socket = io.connect('http://127.0.0.1:8080', { port: 8080, rememberTransport: false });
+    socket = io.connect('http://127.0.0.1:8080', { port: 8080, rememberTransport: false, transports : ['websocket'] });
     socket.on('connect', function() {
         socket.emit('config', {
             server: { port: oscPortIn,  host: '127.0.0.1'},

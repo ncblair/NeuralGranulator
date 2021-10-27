@@ -10,7 +10,11 @@ console.log("To start the demo, go to http://localhost:8080 in your web browser.
 
 const server = http.createServer((req, res) => {
 	// Why doesn't this work! This might cause OSC to fail hmm.
-	res.setHeader("Access-Control-Allow-Origin", "http://localhost:8080/socket.io/");
+	// res.setHeader("Access-Control-Allow-Origin", "http://localhost:8080/socket.io/");
+	res.setHeader("Access-Control-Allow-Origin", "*");
+	res.setHeader("Access-Control-Allow-Headers", "X-Requested-With");
+	res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+	res.setHeader("Access-Control-Allow-Methods", "PUT, GET, POST, DELETE, OPTIONS");
 	let url = ''
 	if (req.url === '/') {
 		url = '/index.html'
@@ -28,10 +32,17 @@ const server = http.createServer((req, res) => {
 	});
 })
 
-var oscServer, oscClient;
-
 var isConnected = false;
+// var io = require('socket.io')(server, {
+// 	cors: {
+// 	  origin: "http://localhost:8080",
+// 	  methods: ["GET", "POST"],
+// 	}
+//   });
+
+var oscServer, oscClient
 var io = socket(server)
+
 io.sockets.on('connection', function (socket) {
 	console.log('connection');
 	socket.on("config", function (obj) {
@@ -55,7 +66,7 @@ io.sockets.on('connection', function (socket) {
   	});
 });
 
-server.listen(process.env.PORT || 8080)
+server.listen(8080)
 
 
 
