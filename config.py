@@ -5,7 +5,7 @@ import os
 PATH = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model_lambda2.pt")
 AUDIO_OUT_FOL = os.path.join(PATH, "OUTPUT")
-DATA_PATH = os.path.join(PATH, "DATA", "nsynth")
+DATA_PATH = os.path.join(PATH, "DATA")
 EMBEDDINGS_PATH = os.path.join(PATH, "EMBEDDINGS", "latents_lambda2.npy")
 AUDIO_FOLDER = os.path.join(PATH, "INPUT")
 LABEL_KEYFILE = os.path.join(PATH, "label_mapping.txt")
