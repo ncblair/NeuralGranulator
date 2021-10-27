@@ -19,15 +19,18 @@ RELEASE_ADDR = "1/release"
 
 class OSCLatent:
 	def __init__(self):
-		latent_2d = np.zeros(2)
-		attack
+		self.latent_2d = np.zeros(2)
+		self.attack = 0.001
 
 	def get_coordinates_handler(self,*args):
 		address = args[0]
 		# [-1, 1] -> [0,1]
-		self.latent2d = (np.array(args[1:]) + 1) * 0.5
+		self.latent_2d = (np.array(args[1:]) + 1) * 0.5
+		print(self.latent_2d)
+
 	
 	def get_attack_handler(self,*args):
+		print("HERE")
 		address = args[0]
 		self.attack = args[1]
 

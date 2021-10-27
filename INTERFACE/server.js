@@ -9,10 +9,10 @@ var http = require('http'),
 console.log("go to http://localhost:8080 in your web browser.");
 
 const server = http.createServer((req, res) => {
-	// res.setHeader("Access-Control-Allow-Origin", "*");
-	// res.setHeader("Access-Control-Allow-Headers", "X-Requested-With");
-	// res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-	// res.setHeader("Access-Control-Allow-Methods", "PUT, GET, POST, DELETE, OPTIONS");
+	res.setHeader("Access-Control-Allow-Origin", "*");
+	res.setHeader("Access-Control-Allow-Headers", "X-Requested-With");
+	res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+	res.setHeader("Access-Control-Allow-Methods", "PUT, GET, POST, DELETE, OPTIONS");
 	let url = ''
 	if (req.url === '/') {
 		url = '/index.html'
