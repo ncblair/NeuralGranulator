@@ -16,10 +16,10 @@ let socket; // osc
 let latent_vis
 
 let LATENT_2D_ADDR = "/1/latent_xy"
-let ATTACK_ADDR = "1/attack"
-let DECAY_ADDR = "1/decay"
-let SUSTAIN_ADDR = "1/sustain"
-let RELEASE_ADDR = "1/release"
+let ATTACK_ADDR = "/1/attack"
+let DECAY_ADDR = "/1/decay"
+let SUSTAIN_ADDR = "/1/sustain"
+let RELEASE_ADDR = "/1/release"
 
 
 function setWindowSize() {
@@ -41,8 +41,9 @@ function localy(globaly) {
 }
 
 class Knob {
-	constructor(name, x, y, w, h, min=0, max=127) {
+	constructor(name, x, y, w, h, address=undefined, min=0, max=1) {
 		this.name = name;
+		this.address = address;
 		this.x = x;
 		this.y = y;
 		this.w = w;
@@ -56,7 +57,7 @@ class Knob {
 		this.pressed_x;
 		this.pressed_y;
 		this.pressed_val;
-		this.pixels_per_increment = 1.5; // num pixels mouse moves per increment
+		this.increment_factor = 0.0075; // The lower the value, the less the knob moves (and vice versa)
 	}
 	
 	draw() {
@@ -94,12 +95,11 @@ class Knob {
 	update() { // mouse_x and mouse_y mouse position in global coords
 		if (this.pressed) {
 			let d = mouseX - globalx(this.pressed_x) - mouseY + globaly(this.pressed_y);
-			this.value = this.pressed_val + d / this.pixels_per_increment;
+			this.value = this.pressed_val + d * this.increment_factor;
 			this.value = constrain(this.value, this.min_val, this.max_val);
-		}
-		// TEST TEST WIP, this should probably be done globally.
-		if (this.name === "attack") {
-			sendOsc(ATTACK_ADDR,this.value) 
+			if(this.address !== undefined) {
+				sendOsc(this.address, this.value)
+			}
 		}
 	}
 	
@@ -193,12 +193,12 @@ function setup() {
 	compass_screen = createGraphics(globalx(507), globaly(507), WEBGL); // 507 is width of miniscreen
 	
 	// create knobs
-	knobs = [new Knob("spread", 903-knob_w/2,512, 64, 64), 
-			new Knob("voices", 903 - knob_w/2,640, 64, 64),
-			new Knob("attack", 1169 - 310/4 - knob_w/2,512, 64, 64),
-			new Knob("decay", 1169 + 310/4 - knob_w/2,512, 64, 64),
-			new Knob("sustain", 1169 - 310/4 - knob_w/2,640, 64, 64),
-			new Knob("release", 1169 + 310/4 - knob_w/2,640, 64, 64)]
+	knobs = [new Knob("spread",903-knob_w/2,512, 64, 64), 
+			new Knob("voices",903 - knob_w/2,640, 64, 64),
+			new Knob("attack", 1169 - 310/4 - knob_w/2,512, 64, 64, ATTACK_ADDR),
+			new Knob("decay", 1169 + 310/4 - knob_w/2,512, 64, 64, DECAY_ADDR),
+			new Knob("sustain", 1169 - 310/4 - knob_w/2,640, 64, 64, SUSTAIN_ADDR),
+			new Knob("release", 1169 + 310/4 - knob_w/2,640, 64, 64, RELEASE_ADDR)]
 	
 	
 	latent_vis = new LatentVisualizer(compass_screen, compass, 130, 252, 507, 507);
@@ -261,7 +261,7 @@ function receiveOsc(address, value) {
 }
 
 function sendOsc(address, value) {
-	console.log(value)
+	console.log("Sent OSC: ", address, value)
 	socket.emit('message', [address].concat(value));
 }
 

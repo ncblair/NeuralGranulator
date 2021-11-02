@@ -18,7 +18,7 @@ BIT_WIDTH = 4 # Number of bytes in a sample, 1, 2, 3, or 4, 4 = 32bit
 CHANNELS = 1
 
 # CUDA
-USE_CUDA = True
+USE_CUDA = False
 
 # DATA GENERATION
 SILENCE_CUTOFF = 0.05
@@ -42,6 +42,15 @@ SCREEN_SIZE = 250
 GUI_SIZE = 250
 WINDOW_SIZE = 750
 SCREEN_COLOR = (255, 255, 255)
+
+# PARAMETERS
+PARAMS = {
+	"attack": {"min_val": 0.001, "max_val": 1.5, "start_val": 0.1 },
+	"decay": {"min_val": 0.0, "max_val": 1.5, "start_val": 0.0 },
+	"sustain": {"min_val": 0.0, "max_val": 1.2, "start_val": 1.0 },
+	"release": {"min_val": 0.001, "max_val": 1.5, "start_val": 0.1 },
+	"variance": {"min_val": 0.0, "max_val": 1.0, "start_val": 0.5 }
+}
 
 # GRANULATOR
 MAX_GRAIN_HISTORY = 10
