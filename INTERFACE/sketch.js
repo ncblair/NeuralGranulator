@@ -20,6 +20,8 @@ let ATTACK_ADDR = "/1/attack"
 let DECAY_ADDR = "/1/decay"
 let SUSTAIN_ADDR = "/1/sustain"
 let RELEASE_ADDR = "/1/release"
+let SPREAD_ADDR = "/1/spread"
+let SMOOTH_ADDR = "/1/smooth"
 
 
 function setWindowSize() {
@@ -193,8 +195,8 @@ function setup() {
 	compass_screen = createGraphics(globalx(507), globaly(507), WEBGL); // 507 is width of miniscreen
 	
 	// create knobs
-	knobs = [new Knob("spread",903-knob_w/2,512, 64, 64), 
-			new Knob("voices",903 - knob_w/2,640, 64, 64),
+	knobs = [new Knob("spread",903-knob_w/2,512, 64, 64, SPREAD_ADDR), 
+			new Knob("smooth",903 - knob_w/2,640, 64, 64, SMOOTH_ADDR),
 			new Knob("attack", 1169 - 310/4 - knob_w/2,512, 64, 64, ATTACK_ADDR),
 			new Knob("decay", 1169 + 310/4 - knob_w/2,512, 64, 64, DECAY_ADDR),
 			new Knob("sustain", 1169 - 310/4 - knob_w/2,640, 64, 64, SUSTAIN_ADDR),

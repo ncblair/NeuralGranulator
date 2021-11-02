@@ -38,10 +38,15 @@ class Voice:
 		self.grain = None
 		self.index_grain = 0
 		self.sample_rate = sample_rate
+		self.smooth = 1
 
 		# Hardcode envelope for now
 		self.env = ADSREnvelope(1.0,1.3,0.5,0.3,sample_rate)
-	
+
+	# between 0 and 1
+	def set_smooth(self, smooth_factor):
+		self.smooth = smooth_factor
+
 	def pitch_voice(self, note):
 		if note == 60:
 			self.grain = self.base_grain
@@ -70,7 +75,10 @@ class Voice:
 	def get_smoothed_grain(self):
 		# smooth grains by adding two windowed grains together
 		grain = triang(self.grain.shape[0])*self.grain
-		grain = self.grain + np.roll(self.grain, len(self.grain)//2)
+		if self.smooth < 0.0001:
+			grain = self.grain
+		else:
+			grain = self.grain + np.roll(self.grain, math.floor(len(self.grain)*0.5*self.smooth))
 		return grain
 
 
@@ -103,6 +111,7 @@ class Granulator:
 		self.decay = 0.2
 		self.sustain = 0.7
 		self.release = 0.25
+		self.smooth = 1.0
 		self.voices = []
 		for i in range(self.MAX_VOICES):
 			self.voices.append(Voice(SR))		
@@ -116,6 +125,14 @@ class Granulator:
 		self.decay = decay
 		self.sustain = sustain
 		self.release = release
+	
+	# Between 0 and 1
+	def set_smooth(self, smooth_factor):
+		self.smooth = smooth_factor
+		active_voices = [voice for voice in self.voices if voice.trigger]
+		for voice in active_voices:
+			voice.set_smooth(self.smooth)
+
 	
 	def replace_grain(self, grain):
 		for voice in self.voices:
@@ -164,6 +181,7 @@ class Granulator:
 			print("OUT OF VOICES!")
 			return
 		available_voices[0].env.set(self.attack,self.decay,self.sustain,self.release)
+		available_voices[0].set_smooth(self.smooth)
 		available_voices[0].note_on(note)
 
 	def note_off(self, note):

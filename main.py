@@ -17,7 +17,7 @@ from utils import load_data
 from gui import Knob
 from config import 	MODEL_PATH, EMBEDDINGS_PATH, DATA_PATH, SCREEN_SIZE, \
 					WINDOW_SIZE, SCREEN_COLOR, USE_CUDA, SR, BIT_WIDTH, \
-					CHANNELS, TEST_BATCH_SIZE, SPREAD, OSC, LAMBDA, GUI_SIZE, \
+					CHANNELS, TEST_BATCH_SIZE, OSC, LAMBDA, GUI_SIZE, \
 					PARAMS
 
 
@@ -175,7 +175,7 @@ async def main_loop():
 	gran.start_audio_stream()
 
 	circle_pos = np.array([SCREEN_SIZE/2, SCREEN_SIZE/2])
-	z_mean, z = get_latent_vector(circle_pos, SPREAD)
+	z_mean, z = get_latent_vector(circle_pos, PARAMS["spread"]["start_val"])
 	update_audio(z)
 	coords = np.zeros(2)
 	old_coords = np.zeros(2)
@@ -197,10 +197,10 @@ async def main_loop():
 				PARAMS["sustain"]["min_val"],
 				PARAMS["sustain"]["max_val"], 
 				PARAMS["sustain"]["start_val"]), 
-			"variance":Knob(gui,300,50,100,100,(0,0,0),(255,0,0),
-				PARAMS["variance"]["min_val"],
-				PARAMS["variance"]["max_val"], 
-				PARAMS["variance"]["start_val"])}
+			"spread":Knob(gui,300,50,100,100,(0,0,0),(255,0,0),
+				PARAMS["spread"]["min_val"],
+				PARAMS["spread"]["max_val"], 
+				PARAMS["spread"]["start_val"])}
 
 	# Run PyGame Loop
 	running = True
@@ -228,12 +228,23 @@ async def main_loop():
 				running = False
 
 			# On Mouse Button Up
-			if event.type == pygame.MOUSEBUTTONUP:
-				z_mean, z = get_latent_vector(circle_pos, SPREAD)
-				update_audio(z)
-				is_mouse_down = False
+			if OSC:
+				if event.type == pygame.MOUSEBUTTONUP:
+					z_mean, z = get_latent_vector(circle_pos, osc_latent.handler.spread)
+					update_audio(z)
+					is_mouse_down = False
+			else:
+				if event.type == pygame.MOUSEBUTTONUP:
+					z_mean, z = get_latent_vector(circle_pos, PARAMS["spread"]["start_val"])
+					update_audio(z)
+					is_mouse_down = False
+
 
 		if OSC:
+			# Smooth factor
+			if osc_latent.handler.smooth != osc_latent.handler.old_smooth:
+				gran.set_smooth(osc_latent.handler.smooth)
+
 			if osc_latent.handler.need_adsr_update():
 				gran.set_envs(osc_latent.handler.attack, osc_latent.handler.decay,\
 					osc_latent.handler.sustain, osc_latent.handler.release)
@@ -255,12 +266,12 @@ async def main_loop():
 		if OSC:
 			if not np.array_equal(coords, old_coords):
 				circle_pos = coords
-				z_mean, z = get_latent_vector(circle_pos, SPREAD)
+				z_mean, z = get_latent_vector(circle_pos, osc_latent.handler.spread)
 				update_audio(z)
 		else:
 			if pygame.mouse.get_pressed()[0]:
 				circle_pos = coords
-				z_mean, z = get_latent_vector(circle_pos, SPREAD)
+				z_mean, z = get_latent_vector(circle_pos, PARAMS["spread"]["start_val"])
 				update_audio(z)
 
 		transformed_screen = pygame.transform.scale(screen,(WINDOW_SIZE, WINDOW_SIZE))

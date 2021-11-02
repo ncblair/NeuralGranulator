@@ -16,6 +16,8 @@ ATTACK_ADDR = "/1/attack"
 DECAY_ADDR = "/1/decay"
 SUSTAIN_ADDR = "/1/sustain"
 RELEASE_ADDR = "/1/release"
+SPREAD_ADDR = "/1/spread"
+SMOOTH_ADDR = "/1/smooth"
 
 class OSCLatent:
 	def __init__(self):
@@ -28,12 +30,16 @@ class OSCLatent:
 		self.old_sustain = PARAMS["sustain"]["start_val"]
 		self.release = PARAMS["release"]["start_val"]
 		self.old_release = PARAMS["release"]["start_val"]
+		self.spread = PARAMS["release"]["start_val"]
+		self.old_spread = PARAMS["spread"]["start_val"]
+		self.smooth = PARAMS["smooth"]["start_val"]
+		self.old_smooth = PARAMS["smooth"]["start_val"]
+
 
 	def get_coordinates_handler(self,*args):
 		address = args[0]
 		# [-1, 1] -> [0,1]
 		self.latent_2d = (np.array(args[1:]) + 1) * 0.5
-		print(self.latent_2d)
 
 	def need_adsr_update(self):
 		return 	(self.attack != self.old_attack) or \
@@ -71,6 +77,20 @@ class OSCLatent:
 		max_val = PARAMS["release"]["max_val"]
 		self.release = args[1] * (max_val-min_val) + min_val
 
+	def spread_handler(self,*args):
+		self.old_spread = self.spread
+		address = args[0]
+		min_val = PARAMS["spread"]["min_val"]
+		max_val = PARAMS["spread"]["max_val"]
+		self.spread = args[1] * (max_val-min_val) + min_val
+
+	def smooth_handler(self,*args):
+		self.old_smooth = self.smooth
+		address = args[0]
+		min_val = PARAMS["smooth"]["min_val"]
+		max_val = PARAMS["smooth"]["max_val"]
+		self.smooth = args[1] * (max_val-min_val) + min_val
+
 	def get_osc_coordinates(self):
 		return self.latent_2d
 
@@ -81,6 +101,9 @@ dispatcher.map(ATTACK_ADDR,handler.attack_handler)
 dispatcher.map(DECAY_ADDR,handler.decay_handler)
 dispatcher.map(SUSTAIN_ADDR,handler.sustain_handler)
 dispatcher.map(RELEASE_ADDR,handler.release_handler)
+dispatcher.map(SPREAD_ADDR,handler.spread_handler)
+dispatcher.map(SMOOTH_ADDR,handler.smooth_handler)
+
 
 
 
