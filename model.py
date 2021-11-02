@@ -51,12 +51,16 @@ class GrainVAE(nn.Module):
 
 		# decoder layers
 		self.fc2 = nn.Linear(self.l_dim, self.h_dim)
-		self.hidden_decoders = []
-		for i in range(self.hidden_layers):
-			if self.use_cuda:
-				self.hidden_decoders.append(nn.Linear(self.h_dim, self.h_dim).cuda())
-			else:
-				self.hidden_decoders.append(nn.Linear(self.h_dim, self.h_dim))
+		# self.hidden_decoders = []
+		# for i in range(self.hidden_layers):
+		# 	if self.use_cuda:
+		# 		self.hidden_decoders.append(nn.Linear(self.h_dim, self.h_dim).cuda())
+		# 	else:
+		# 		self.hidden_decoders.append(nn.Linear(self.h_dim, self.h_dim))
+		self.hidden_decoders = torch.nn.Sequential(
+								*sum([[nn.Linear(self.h_dim, self.h_dim), nn.ReLU()]
+								for i in range(self.hidden_layers)], []))
+
 		self.fc3 = nn.Linear(self.h_dim, self.grain_length)
 
 		self.log_scale = nn.Parameter(torch.Tensor([0.0]))
@@ -98,12 +102,22 @@ class GrainVAE(nn.Module):
 		mu, log_var = self.fc_mu(x), self.fc_var(x)
 		return mu, log_var
 
+	# def decoder(self, z):
+	# 	z = F.relu(self.fc2(z))
+	# 	for i in range(self.hidden_layers):
+	# 		z = F.relu(self.hidden_decoders[i](z))
+	# 	z = self.fc3(z)
+	# 	return z
+
 	def decoder(self, z):
 		z = F.relu(self.fc2(z))
-		for i in range(self.hidden_layers):
-			z = F.relu(self.hidden_decoders[i](z))
+		z = self.hidden_decoders(z)
 		z = self.fc3(z)
 		return z
+
+	def forward(self, z):
+		# define forward as just the decoder for tracing into c++
+		self.decoder(z)
 
 	def reconstruction_loss(self, x_hat, x):
 		scale = torch.exp(self.log_scale)

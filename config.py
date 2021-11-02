@@ -3,10 +3,11 @@ import os
 
 # PATHS
 PATH = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(PATH, "MODELS", "grain_model_lambda2.pt")
+MODEL_PATH = os.path.join(PATH, "MODELS", "cpp_ex_model.pt")
+TRACED_MODEL_PATH = os.path.join(PATH, "MODELS", "CPP", "cpp_ex_model.pt")
 AUDIO_OUT_FOL = os.path.join(PATH, "OUTPUT")
 DATA_PATH = os.path.join(PATH, "DATA")
-EMBEDDINGS_PATH = os.path.join(PATH, "EMBEDDINGS", "latents_lambda2.npy")
+EMBEDDINGS_PATH = os.path.join(PATH, "EMBEDDINGS", "cpp_ex_latents.npy")
 AUDIO_FOLDER = os.path.join(PATH, "INPUT")
 LABEL_KEYFILE = os.path.join(PATH, "label_mapping.txt")
 
@@ -17,7 +18,7 @@ BIT_WIDTH = 4 # Number of bytes in a sample, 1, 2, 3, or 4, 4 = 32bit
 CHANNELS = 1
 
 # CUDA
-USE_CUDA = False
+USE_CUDA = True
 
 # DATA GENERATION
 SILENCE_CUTOFF = 0.05
@@ -27,7 +28,7 @@ SILENCE_CUTOFF = 0.05
 EPOCHS = 1000
 LEARNING_RATE = .0001
 LOG_EPOCHS = 10
-CHECKPOINT_EPOCHS = 100
+CHECKPOINT_EPOCHS = 30
 MAX_BETA = 100
 LAMBDA = 3
 MAX_GRAD_NORM = 5
