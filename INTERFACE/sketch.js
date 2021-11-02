@@ -43,23 +43,25 @@ function localy(globaly) {
 }
 
 class Knob {
-	constructor(name, x, y, w, h, address=undefined, min=0, max=1) {
-		this.name = name;
-		this.address = address;
-		this.x = x;
-		this.y = y;
-		this.w = w;
-		this.h = h;
-		this.min_val = min;
-		this.max_val = max;
+	constructor(name, x, y, w, h, address=undefined, is_log = true, min=0, max=1) {
+		this.name = name
+		this.address = address
+		this.x = x
+		this.y = y
+		this.w = w
+		this.h = h
+		this.is_log = is_log
+		this.min_val = min
+		this.max_val = max
 		
-		this.img = loadImage('IMG/knob.png');
-		this.value = this.max_val/2;
-		this.pressed = false;
-		this.pressed_x;
-		this.pressed_y;
-		this.pressed_val;
-		this.increment_factor = 0.0075; // The lower the value, the less the knob moves (and vice versa)
+		this.img = loadImage('IMG/knob.png')
+		this.value = this.max_val/2
+		this.display_value = this.max_val/2
+		this.pressed = false
+		this.pressed_x
+		this.pressed_y
+		this.pressed_val
+		this.increment_factor = 0.0075 // The lower the value, the less the knob moves (and vice versa)
 	}
 	
 	draw() {
@@ -80,7 +82,7 @@ class Knob {
 	}
 	
 	pos() {
-		return Math.round(63*(this.value - this.min_val) / (this.max_val - this.min_val));
+		return Math.round(63*(this.display_value - this.min_val) / (this.max_val - this.min_val));
 	}
 	
 	collision(x, y) { //x and y in local coordinates
@@ -91,14 +93,18 @@ class Knob {
 		this.pressed = true;
 		this.pressed_x = x;
 		this.pressed_y = y;
-		this.pressed_val = this.value;
+		this.pressed_val = this.display_value;
 	}
 	
 	update() { // mouse_x and mouse_y mouse position in global coords
 		if (this.pressed) {
-			let d = mouseX - globalx(this.pressed_x) - mouseY + globaly(this.pressed_y);
-			this.value = this.pressed_val + d * this.increment_factor;
-			this.value = constrain(this.value, this.min_val, this.max_val);
+			let d = mouseX - globalx(this.pressed_x) - mouseY + globaly(this.pressed_y)
+			this.display_value = constrain(this.pressed_val + d * this.increment_factor,this.min_val, this.max_val)
+			if (this.is_log) {
+				this.value = output_val_in_range(this.display_value,this.min_val,this.max_val,this.is_log,3)
+			} else {
+				this.value = this.display_value
+			}
 			if(this.address !== undefined) {
 				sendOsc(this.address, this.value)
 			}
