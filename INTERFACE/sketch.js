@@ -16,10 +16,12 @@ let socket; // osc
 let latent_vis
 
 let LATENT_2D_ADDR = "/1/latent_xy"
-let ATTACK_ADDR = "1/attack"
-let DECAY_ADDR = "1/decay"
-let SUSTAIN_ADDR = "1/sustain"
-let RELEASE_ADDR = "1/release"
+let ATTACK_ADDR = "/1/attack"
+let DECAY_ADDR = "/1/decay"
+let SUSTAIN_ADDR = "/1/sustain"
+let RELEASE_ADDR = "/1/release"
+let SPREAD_ADDR = "/1/spread"
+let SMOOTH_ADDR = "/1/smooth"
 
 
 function setWindowSize() {
@@ -41,22 +43,25 @@ function localy(globaly) {
 }
 
 class Knob {
-	constructor(name, x, y, w, h, min=0, max=127) {
-		this.name = name;
-		this.x = x;
-		this.y = y;
-		this.w = w;
-		this.h = h;
-		this.min_val = min;
-		this.max_val = max;
+	constructor(name, x, y, w, h, address=undefined, is_log = true, min=0, max=1) {
+		this.name = name
+		this.address = address
+		this.x = x
+		this.y = y
+		this.w = w
+		this.h = h
+		this.is_log = is_log
+		this.min_val = min
+		this.max_val = max
 		
-		this.img = loadImage('IMG/knob.png');
-		this.value = this.max_val/2;
-		this.pressed = false;
-		this.pressed_x;
-		this.pressed_y;
-		this.pressed_val;
-		this.pixels_per_increment = 1.5; // num pixels mouse moves per increment
+		this.img = loadImage('IMG/knob.png')
+		this.value = this.max_val/2
+		this.display_value = this.max_val/2
+		this.pressed = false
+		this.pressed_x
+		this.pressed_y
+		this.pressed_val
+		this.increment_factor = 0.0075 // The lower the value, the less the knob moves (and vice versa)
 	}
 	
 	draw() {
@@ -77,7 +82,7 @@ class Knob {
 	}
 	
 	pos() {
-		return Math.round(63*(this.value - this.min_val) / (this.max_val - this.min_val));
+		return Math.round(63*(this.display_value - this.min_val) / (this.max_val - this.min_val));
 	}
 	
 	collision(x, y) { //x and y in local coordinates
@@ -88,18 +93,21 @@ class Knob {
 		this.pressed = true;
 		this.pressed_x = x;
 		this.pressed_y = y;
-		this.pressed_val = this.value;
+		this.pressed_val = this.display_value;
 	}
 	
 	update() { // mouse_x and mouse_y mouse position in global coords
 		if (this.pressed) {
-			let d = mouseX - globalx(this.pressed_x) - mouseY + globaly(this.pressed_y);
-			this.value = this.pressed_val + d / this.pixels_per_increment;
-			this.value = constrain(this.value, this.min_val, this.max_val);
-		}
-		// TEST TEST WIP, this should probably be done globally.
-		if (this.name === "attack") {
-			sendOsc(ATTACK_ADDR,this.value) 
+			let d = mouseX - globalx(this.pressed_x) - mouseY + globaly(this.pressed_y)
+			this.display_value = constrain(this.pressed_val + d * this.increment_factor,this.min_val, this.max_val)
+			if (this.is_log) {
+				this.value = output_val_in_range(this.display_value,this.min_val,this.max_val,this.is_log,3)
+			} else {
+				this.value = this.display_value
+			}
+			if(this.address !== undefined) {
+				sendOsc(this.address, this.value)
+			}
 		}
 	}
 	
@@ -193,12 +201,12 @@ function setup() {
 	compass_screen = createGraphics(globalx(507), globaly(507), WEBGL); // 507 is width of miniscreen
 	
 	// create knobs
-	knobs = [new Knob("spread", 903-knob_w/2,512, 64, 64), 
-			new Knob("voices", 903 - knob_w/2,640, 64, 64),
-			new Knob("attack", 1169 - 310/4 - knob_w/2,512, 64, 64),
-			new Knob("decay", 1169 + 310/4 - knob_w/2,512, 64, 64),
-			new Knob("sustain", 1169 - 310/4 - knob_w/2,640, 64, 64),
-			new Knob("release", 1169 + 310/4 - knob_w/2,640, 64, 64)]
+	knobs = [new Knob("spread",903-knob_w/2,512, 64, 64, SPREAD_ADDR), 
+			new Knob("smooth",903 - knob_w/2,640, 64, 64, SMOOTH_ADDR),
+			new Knob("attack", 1169 - 310/4 - knob_w/2,512, 64, 64, ATTACK_ADDR),
+			new Knob("decay", 1169 + 310/4 - knob_w/2,512, 64, 64, DECAY_ADDR),
+			new Knob("sustain", 1169 - 310/4 - knob_w/2,640, 64, 64, SUSTAIN_ADDR),
+			new Knob("release", 1169 + 310/4 - knob_w/2,640, 64, 64, RELEASE_ADDR)]
 	
 	
 	latent_vis = new LatentVisualizer(compass_screen, compass, 130, 252, 507, 507);
@@ -261,7 +269,7 @@ function receiveOsc(address, value) {
 }
 
 function sendOsc(address, value) {
-	console.log(value)
+	console.log("Sent OSC: ", address, value)
 	socket.emit('message', [address].concat(value));
 }
 

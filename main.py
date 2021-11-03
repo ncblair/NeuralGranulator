@@ -17,7 +17,8 @@ from utils import load_data
 from gui import Knob
 from config import 	MODEL_PATH, EMBEDDINGS_PATH, DATA_PATH, SCREEN_SIZE, \
 					WINDOW_SIZE, SCREEN_COLOR, USE_CUDA, SR, BIT_WIDTH, \
-					CHANNELS, TEST_BATCH_SIZE, SPREAD, OSC, LAMBDA, GUI_SIZE
+					CHANNELS, TEST_BATCH_SIZE, OSC, LAMBDA, GUI_SIZE, \
+					PARAMS
 
 
 # Conditionally Import OSC:
@@ -174,17 +175,32 @@ async def main_loop():
 	gran.start_audio_stream()
 
 	circle_pos = np.array([SCREEN_SIZE/2, SCREEN_SIZE/2])
-	z_mean, z = get_latent_vector(circle_pos, SPREAD)
+	z_mean, z = get_latent_vector(circle_pos, PARAMS["spread"]["start_val"])
 	update_audio(z)
 	coords = np.zeros(2)
 	old_coords = np.zeros(2)
 	
 	is_gui_element_active = False
-	knobs = {"attack":Knob(gui,100,50,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5), 
-			"decay":Knob(gui,200,50,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5),
-			"release":Knob(gui,100,150,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5),
-			"sustain":Knob(gui,200,150,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5),
-			"variance":Knob(gui,300,50,100,100,(0,0,0),(255,0,0),0.0,1.0, 0.5)}
+	knobs = {"attack":Knob(gui,100,50,100,100,(0,0,0),(255,0,0),
+				PARAMS["attack"]["min_val"],
+				PARAMS["attack"]["max_val"], 
+				PARAMS["attack"]["start_val"]), 
+			"decay":Knob(gui,200,50,100,100,(0,0,0),(255,0,0),
+				PARAMS["decay"]["min_val"],
+				PARAMS["decay"]["max_val"], 
+				PARAMS["decay"]["start_val"]), 
+			"release":Knob(gui,100,150,100,100,(0,0,0),(255,0,0),
+				PARAMS["release"]["min_val"],
+				PARAMS["release"]["max_val"], 
+				PARAMS["release"]["start_val"]), 
+			"sustain":Knob(gui,200,150,100,100,(0,0,0),(255,0,0),
+				PARAMS["sustain"]["min_val"],
+				PARAMS["sustain"]["max_val"], 
+				PARAMS["sustain"]["start_val"]), 
+			"spread":Knob(gui,300,50,100,100,(0,0,0),(255,0,0),
+				PARAMS["spread"]["min_val"],
+				PARAMS["spread"]["max_val"], 
+				PARAMS["spread"]["start_val"])}
 
 	# Run PyGame Loop
 	running = True
@@ -193,7 +209,7 @@ async def main_loop():
 		mouse_pos = pygame.mouse.get_pos()
 		if OSC:
 			old_coords = coords
-			coords = osc_latent.osc_handler.get_osc_coordinates() * SCREEN_SIZE
+			coords = osc_latent.handler.get_osc_coordinates() * SCREEN_SIZE
 		else:
 			coords = np.array(mouse_pos) * SCREEN_SIZE / WINDOW_SIZE
 
@@ -212,34 +228,50 @@ async def main_loop():
 				running = False
 
 			# On Mouse Button Up
-			if event.type == pygame.MOUSEBUTTONUP:
-				z_mean, z = get_latent_vector(circle_pos, SPREAD)
-				update_audio(z)
-				is_mouse_down = False
+			if OSC:
+				if event.type == pygame.MOUSEBUTTONUP:
+					z_mean, z = get_latent_vector(circle_pos, osc_latent.handler.spread)
+					update_audio(z)
+					is_mouse_down = False
+			else:
+				if event.type == pygame.MOUSEBUTTONUP:
+					z_mean, z = get_latent_vector(circle_pos, PARAMS["spread"]["start_val"])
+					update_audio(z)
+					is_mouse_down = False
 
-		is_a_knob_active = False
-		for knob_name in knobs:
-			knob = knobs[knob_name]
-			is_a_knob_active = knob.draw(gui_coords, pygame.mouse.get_pressed(), \
-				not is_gui_element_active) or is_a_knob_active
-		is_gui_element_active = is_a_knob_active
 
-		if len([ 1 for knob_name in knobs \
-			if knobs[knob_name].cur_val != knobs[knob_name].old_val]) \
-				> 0 :
-			gran.set_envs(knobs["attack"].cur_val,knobs["decay"].cur_val, \
-				knobs["sustain"].cur_val, knobs["release"].cur_val)
+		if OSC:
+			# Smooth factor
+			if osc_latent.handler.smooth != osc_latent.handler.old_smooth:
+				gran.set_smooth(osc_latent.handler.smooth)
+
+			if osc_latent.handler.need_adsr_update():
+				gran.set_envs(osc_latent.handler.attack, osc_latent.handler.decay,\
+					osc_latent.handler.sustain, osc_latent.handler.release)
+		else:
+			is_a_knob_active = False
+			for knob_name in knobs:
+				knob = knobs[knob_name]
+				is_a_knob_active = knob.draw(gui_coords, pygame.mouse.get_pressed(), \
+					not is_gui_element_active) or is_a_knob_active
+			is_gui_element_active = is_a_knob_active
+
+			if len([ 1 for knob_name in knobs \
+				if knobs[knob_name].cur_val != knobs[knob_name].old_val]) \
+					> 0 :
+				gran.set_envs(knobs["attack"].cur_val,knobs["decay"].cur_val, \
+					knobs["sustain"].cur_val, knobs["release"].cur_val)
 
 		# If mouse being pressed
 		if OSC:
 			if not np.array_equal(coords, old_coords):
 				circle_pos = coords
-				z_mean, z = get_latent_vector(circle_pos, SPREAD)
+				z_mean, z = get_latent_vector(circle_pos, osc_latent.handler.spread)
 				update_audio(z)
 		else:
 			if pygame.mouse.get_pressed()[0]:
 				circle_pos = coords
-				z_mean, z = get_latent_vector(circle_pos, SPREAD)
+				z_mean, z = get_latent_vector(circle_pos, PARAMS["spread"]["start_val"])
 				update_audio(z)
 
 		transformed_screen = pygame.transform.scale(screen,(WINDOW_SIZE, WINDOW_SIZE))

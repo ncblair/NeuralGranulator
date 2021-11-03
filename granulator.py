@@ -21,10 +21,13 @@ class OnMidiInput():
 		message, deltatime = event
 		midi_type, midi_note, midi_velocity = message
 
-		# TODO scale amplitude based on velocity
+		# TODO scale amplitude based on velocity NON-LINEAR
+		midi_velocity = midi_velocity / 127.0 #really naive linear midi to amp conversion
+		# midi_velocity = 40*(math.log10(midi_velocity/127.0))
+		# midi_velocity = pow(10, midi_velocity / 20)
 		# MIDI NOTE ON
 		if midi_type == 144:
-			self.gran.note_on(midi_note)
+			self.gran.note_on(midi_note, midi_velocity)
 		# MIDI NOTE OFF
 		if midi_type == 128:
 			self.gran.note_off(midi_note)
@@ -32,16 +35,22 @@ class OnMidiInput():
 class Voice:
 	def __init__(self, sample_rate):
 		self.note = 60
+		self.amp = 1.0
 		self.trigger = False
 		# Maybe we hold onto a couple of grains that it can be smoothed with? IDfK
 		self.base_grain = None
 		self.grain = None
 		self.index_grain = 0
 		self.sample_rate = sample_rate
+		self.smooth = 1
 
 		# Hardcode envelope for now
 		self.env = ADSREnvelope(1.0,1.3,0.5,0.3,sample_rate)
-	
+
+	# between 0 and 1
+	def set_smooth(self, smooth_factor):
+		self.smooth = smooth_factor
+
 	def pitch_voice(self, note):
 		if note == 60:
 			self.grain = self.base_grain
@@ -59,7 +68,8 @@ class Voice:
 
 
 	# ASSUMES GRAIN EXISTS
-	def note_on(self, note):
+	def note_on(self, note, amp=1.0):
+		self.amp = amp
 		self.pitch_voice(note)
 		self.index_grain = 0
 		self.note = note
@@ -70,7 +80,10 @@ class Voice:
 	def get_smoothed_grain(self):
 		# smooth grains by adding two windowed grains together
 		grain = triang(self.grain.shape[0])*self.grain
-		grain = self.grain + np.roll(self.grain, len(self.grain)//2)
+		if self.smooth < 0.0001:
+			grain = self.grain
+		else:
+			grain = self.grain + np.roll(self.grain, math.floor(len(self.grain)*0.5*self.smooth))
 		return grain
 
 
@@ -83,7 +96,7 @@ class Voice:
 		g = self.get_smoothed_grain()
 		idx = np.arange(self.index_grain, self.index_grain + frame_count)
 		data = np.take(g, idx, mode="wrap") 
-		env_data = self.env.get_audio_data(frame_count)
+		env_data = self.env.get_audio_data(frame_count) * self.amp
 		data *= env_data
 		# increment envelope and grain index by size
 		self.index_grain = (self.index_grain + frame_count) % len(g)
@@ -103,6 +116,7 @@ class Granulator:
 		self.decay = 0.2
 		self.sustain = 0.7
 		self.release = 0.25
+		self.smooth = 1.0
 		self.voices = []
 		for i in range(self.MAX_VOICES):
 			self.voices.append(Voice(SR))		
@@ -116,6 +130,14 @@ class Granulator:
 		self.decay = decay
 		self.sustain = sustain
 		self.release = release
+	
+	# Between 0 and 1
+	def set_smooth(self, smooth_factor):
+		self.smooth = smooth_factor
+		active_voices = [voice for voice in self.voices if voice.trigger]
+		for voice in active_voices:
+			voice.set_smooth(self.smooth)
+
 	
 	def replace_grain(self, grain):
 		for voice in self.voices:
@@ -158,13 +180,14 @@ class Granulator:
 		if self.midi_input:
 			self.midi_input.close_port()
 
-	def note_on(self, note):
+	def note_on(self, note, amp=1.0):
 		available_voices = [voice for voice in self.voices if not voice.trigger]
 		if len(available_voices) < 1:
 			print("OUT OF VOICES!")
 			return
 		available_voices[0].env.set(self.attack,self.decay,self.sustain,self.release)
-		available_voices[0].note_on(note)
+		available_voices[0].set_smooth(self.smooth)
+		available_voices[0].note_on(note,amp)
 
 	def note_off(self, note):
 		note_on_voices = [voice for voice in self.voices if voice.trigger and voice.note == note]

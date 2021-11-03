@@ -43,13 +43,21 @@ GUI_SIZE = 250
 WINDOW_SIZE = 750
 SCREEN_COLOR = (255, 255, 255)
 
+# PARAMETERS
+PARAMS = {
+	"attack": {"min_val": 0.001, "max_val": 1.5, "start_val": 0.1 },
+	"decay": {"min_val": 0.0, "max_val": 1.5, "start_val": 0.0 },
+	"sustain": {"min_val": 0.0, "max_val": 1.2, "start_val": 1.0 },
+	"release": {"min_val": 0.001, "max_val": 1.5, "start_val": 0.1 },
+	"spread": {"min_val": 0.0, "max_val": 1.0, "start_val": 0.0 },
+	"smooth": {"min_val": 0.0, "max_val": 1.0, "start_val": 1.0 }
+}
+
 # GRANULATOR
 MAX_GRAIN_HISTORY = 10
 OVERLAP = 0.9
 NUM_OVERLAPS = 3
 TEST_BATCH_SIZE = 1 # unison of neural net input
-SPREAD = 0 # variance of neural net input
-
 
 # OSC
 OSC = False
