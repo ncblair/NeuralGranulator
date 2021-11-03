@@ -45,12 +45,12 @@ SCREEN_COLOR = (255, 255, 255)
 
 # PARAMETERS
 PARAMS = {
-	"attack": {"min_val": 0.001, "max_val": 1.5, "start_val": 0.1 },
-	"decay": {"min_val": 0.0, "max_val": 1.5, "start_val": 0.0 },
-	"sustain": {"min_val": 0.0, "max_val": 1.2, "start_val": 1.0 },
-	"release": {"min_val": 0.001, "max_val": 1.5, "start_val": 0.1 },
-	"spread": {"min_val": 0.0, "max_val": 1.0, "start_val": 0.0 },
-	"smooth": {"min_val": 0.0, "max_val": 1.0, "start_val": 1.0 }
+	"attack": {"addr": "/1/attack", "min_val": 0.001, "max_val": 1.5, "start_val": 0.1 },
+	"decay": {"addr": "/1/decay", "min_val": 0.0, "max_val": 1.5, "start_val": 0.0 },
+	"sustain": {"addr": "/1/sustain", "min_val": 0.0, "max_val": 1.2, "start_val": 1.0 },
+	"release": {"addr": "/1/release", "min_val": 0.001, "max_val": 1.5, "start_val": 0.2 },
+	"spread": {"addr": "/1/spread", "min_val": 0.0, "max_val": 1.0, "start_val": 0.0 },
+	"smooth": {"addr": "/1/smooth", "min_val": 0.0, "max_val": 1.0, "start_val": 1.0 }
 }
 
 # GRANULATOR

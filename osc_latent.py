@@ -4,12 +4,14 @@ import asyncio
 
 from pythonosc import dispatcher
 from pythonosc import osc_server
+from pythonosc import udp_client
 
 from config import IP, PORT, PARAMS
 
 #IP = "192.168.1.207" # eudoram"169.231.37.250"
 IP = "127.0.0.1"
 PORT = 57121
+SEND_PORT = 12000
 
 LATENT_2D_ADDR = "/1/latent_xy"
 ATTACK_ADDR = "/1/attack"
@@ -19,6 +21,7 @@ RELEASE_ADDR = "/1/release"
 SPREAD_ADDR = "/1/spread"
 SMOOTH_ADDR = "/1/smooth"
 
+## RECIEVE MESSAGES 
 class OSCLatent:
 	def __init__(self):
 		self.latent_2d = np.zeros(2)
@@ -104,7 +107,19 @@ dispatcher.map(RELEASE_ADDR,handler.release_handler)
 dispatcher.map(SPREAD_ADDR,handler.spread_handler)
 dispatcher.map(SMOOTH_ADDR,handler.smooth_handler)
 
+## SEND MESSAGES
+client = udp_client.SimpleUDPClient(IP, SEND_PORT)
 
+def send_init_vals():
+	for p in PARAMS:
+		# We need to normalize values between 0 and 1 
+		# 	for direct mapping to GUI.
+		minn = PARAMS[p]["min_val"]
+		v = (PARAMS[p]["start_val"] - minn) / (PARAMS[p]["max_val"] - minn)
+		client.send_message(PARAMS[p]["addr"], \
+			v)
+
+send_init_vals()
 
 
 async def main_loop():

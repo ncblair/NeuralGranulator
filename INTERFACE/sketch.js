@@ -80,6 +80,10 @@ class Knob {
 		strokeWeight(10);
 		text(this.name, x + w/2, y + 1.5*fontsize + h);
 	}
+
+	set_val(val) {
+		this.display_value = val
+	}
 	
 	pos() {
 		return Math.round(63*(this.display_value - this.min_val) / (this.max_val - this.min_val));
@@ -201,80 +205,91 @@ function setup() {
 	compass_screen = createGraphics(globalx(507), globaly(507), WEBGL); // 507 is width of miniscreen
 	
 	// create knobs
-	knobs = [new Knob("spread",903-knob_w/2,512, 64, 64, SPREAD_ADDR), 
-			new Knob("smooth",903 - knob_w/2,640, 64, 64, SMOOTH_ADDR),
-			new Knob("attack", 1169 - 310/4 - knob_w/2,512, 64, 64, ATTACK_ADDR),
-			new Knob("decay", 1169 + 310/4 - knob_w/2,512, 64, 64, DECAY_ADDR),
-			new Knob("sustain", 1169 - 310/4 - knob_w/2,640, 64, 64, SUSTAIN_ADDR),
-			new Knob("release", 1169 + 310/4 - knob_w/2,640, 64, 64, RELEASE_ADDR)]
+	knobs = [
+		new Knob("spread",903-knob_w/2,512, 64, 64, SPREAD_ADDR), 
+		new Knob("smooth",903 - knob_w/2,640, 64, 64, SMOOTH_ADDR),
+		new Knob("attack", 1169 - 310/4 - knob_w/2,512, 64, 64, ATTACK_ADDR),
+		new Knob("decay", 1169 + 310/4 - knob_w/2,512, 64, 64, DECAY_ADDR),
+		new Knob("sustain", 1169 - 310/4 - knob_w/2,640, 64, 64, SUSTAIN_ADDR),
+		new Knob("release", 1169 + 310/4 - knob_w/2,640, 64, 64, RELEASE_ADDR)
+	]
 	
 	
-	latent_vis = new LatentVisualizer(compass_screen, compass, 130, 252, 507, 507);
+	latent_vis = new LatentVisualizer(compass_screen, compass, 130, 252, 507, 507)
 	
-	stroke(secondary_color);
+	stroke(secondary_color)
 
-	setupOsc(port_in, port_out);
+	setupOsc(port_in, port_out)
 }
 
 function draw() {
 	background(bg_img);
 	for (knob of knobs) {
-		knob.draw();
+		knob.draw()
 	}
-	latent_vis.draw();
+	latent_vis.draw()
 }
 
 function mousePressed() {
-	x = localx(mouseX);
-	y = localy(mouseY);
+	x = localx(mouseX)
+	y = localy(mouseY)
 	for (knob of knobs) {
 		if (knob.collision(x, y)) {
-			knob.press(x, y);
+			knob.press(x, y)
 		}
 	}
 	if (latent_vis.collision(x, y)) {
-		latent_vis.press(x, y);
+		latent_vis.press(x, y)
 	}
 }
 
 function mouseDragged() {
 	for (knob of knobs) {
-		knob.update();
+		knob.update()
 	}
-	latent_vis.update();
+	latent_vis.update()
 }
 
 function mouseReleased() {
 	for (knob of knobs) {
-		knob.release();
+		knob.release()
 	}
-	latent_vis.release();
+	latent_vis.release()
 }
 
 function windowResized() {
-	setWindowSize();
-	resizeCanvas(winWidth, winHeight);
-	canv.center();
-	compass_screen.resizeCanvas(globalx(507), globaly(507));
+	setWindowSize()
+	resizeCanvas(winWidth, winHeight)
+	canv.center()
+	compass_screen.resizeCanvas(globalx(507), globaly(507))
 }
 
 https://github.com/genekogan/p5js-osc/blob/master/p5-basic/sketch.js
 function receiveOsc(address, value) {
-	console.log("received OSC: " + address + ", " + value);
+	console.log("received OSC: " + address + ", " + value)
 
 	if (address == '/1/xy1') {
-		x = value[0];
-		y = value[1];
+		x = value[0]
+		y = value[1]
+		return
+	}
+	for (knob of knobs) {
+		if (knob.address === address) {
+			knob.set_val(value[0])
+		}
+	}
+	if(address == SPREAD_ADDR) {
+		knobs["spread"].set_val(value[0])
 	}
 }
 
 function sendOsc(address, value) {
 	console.log("Sent OSC: ", address, value)
-	socket.emit('message', [address].concat(value));
+	socket.emit('message', [address].concat(value))
 }
 
 function setupOsc(oscPortIn, oscPortOut) {
-	socket = io.connect('http://127.0.0.1:8080', { port: 8080, rememberTransport: false, transports : ['websocket'] });
+	socket = io.connect('http://127.0.0.1:8080', { port: 8080, rememberTransport: false, transports : ['websocket'] })
 	socket.on('connect', function() {
 		socket.emit('config', {
 			server: { port: oscPortIn,  host: '127.0.0.1'},
@@ -284,10 +299,10 @@ function setupOsc(oscPortIn, oscPortOut) {
 	socket.on('message', function(msg) {
 		if (msg[0] == '#bundle') {
 			for (var i=2; i<msg.length; i++) {
-				receiveOsc(msg[i][0], msg[i].splice(1));
+				receiveOsc(msg[i][0], msg[i].splice(1))
 			}
 		} else {
-			receiveOsc(msg[0], msg.splice(1));
+			receiveOsc(msg[0], msg.splice(1))
 		}
 	});
 }
