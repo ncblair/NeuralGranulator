@@ -25,4 +25,5 @@
 ### Completed Transvergence NOV 3:
 
 - Added more OSC Hooks and got JS GUI working better (Jack)
+- Added MIDI velocity (Jack)
 
