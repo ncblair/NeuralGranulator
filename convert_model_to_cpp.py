@@ -41,6 +41,6 @@ with torch.no_grad():
 	traced_script_module = torch.jit.trace(model, example_input)
 
 	if not os.path.exists(TRACED_MODEL_PATH):
-		os.makedirs(TRACED_MODEL_PATH)
+		os.makedirs(os.path.basename(TRACED_MODEL_PATH))
 	# serialize trace scripted model
 	traced_script_module.save(TRACED_MODEL_PATH)

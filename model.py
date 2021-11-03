@@ -117,7 +117,7 @@ class GrainVAE(nn.Module):
 
 	def forward(self, z):
 		# define forward as just the decoder for tracing into c++
-		self.decoder(z)
+		return self.decoder(z)
 
 	def reconstruction_loss(self, x_hat, x):
 		scale = torch.exp(self.log_scale)
