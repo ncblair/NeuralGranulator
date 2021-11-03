@@ -22,6 +22,7 @@ let SUSTAIN_ADDR = "/1/sustain"
 let RELEASE_ADDR = "/1/release"
 let SPREAD_ADDR = "/1/spread"
 let SMOOTH_ADDR = "/1/smooth"
+let LATENT_MEAN_ADDR = "/1/latent_mean"
 
 
 function setWindowSize() {
@@ -269,11 +270,10 @@ https://github.com/genekogan/p5js-osc/blob/master/p5-basic/sketch.js
 function receiveOsc(address, value) {
 	console.log("received OSC: " + address + ", " + value)
 
-	if (address == '/1/xy1') {
-		x = value[0]
-		y = value[1]
-		return
+	if (address == LATENT_MEAN_ADDR) {
+		// Update display
 	}
+
 	// Ehhh should we loop or have a bunch of cases?
 	for (knob of knobs) {
 		if (knob.address === address) {

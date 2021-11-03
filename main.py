@@ -177,7 +177,7 @@ async def main_loop():
 	circle_pos = np.array([SCREEN_SIZE/2, SCREEN_SIZE/2])
 	z_mean, z = get_latent_vector(circle_pos, PARAMS["spread"]["start_val"])
 	# Send initial z mean
-	osc_latent.client.send_message("/1/latent_mean",z_mean.cpu().numpy()[0].tolist())
+	osc_latent.send_latent_mean(z_mean)
 
 	update_audio(z)
 	coords = np.zeros(2)
@@ -234,6 +234,7 @@ async def main_loop():
 			if OSC:
 				if event.type == pygame.MOUSEBUTTONUP:
 					z_mean, z = get_latent_vector(circle_pos, osc_latent.handler.spread)
+					osc_latent.send_latent_mean(z_mean)
 					update_audio(z)
 					is_mouse_down = False
 			else:
@@ -270,6 +271,7 @@ async def main_loop():
 			if not np.array_equal(coords, old_coords):
 				circle_pos = coords
 				z_mean, z = get_latent_vector(circle_pos, osc_latent.handler.spread)
+				osc_latent.send_latent_mean(z_mean)
 				update_audio(z)
 		else:
 			if pygame.mouse.get_pressed()[0]:

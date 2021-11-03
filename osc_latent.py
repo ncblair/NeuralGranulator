@@ -20,6 +20,7 @@ SUSTAIN_ADDR = "/1/sustain"
 RELEASE_ADDR = "/1/release"
 SPREAD_ADDR = "/1/spread"
 SMOOTH_ADDR = "/1/smooth"
+LATENT_MEAN_ADDR = "/1/latent_mean"
 
 ## RECIEVE MESSAGES 
 class OSCLatent:
@@ -37,6 +38,7 @@ class OSCLatent:
 		self.old_spread = PARAMS["spread"]["start_val"]
 		self.smooth = PARAMS["smooth"]["start_val"]
 		self.old_smooth = PARAMS["smooth"]["start_val"]
+		self.z_mean = None
 
 
 	def get_coordinates_handler(self,*args):
@@ -109,6 +111,14 @@ dispatcher.map(SMOOTH_ADDR,handler.smooth_handler)
 
 ## SEND MESSAGES
 client = udp_client.SimpleUDPClient(IP, SEND_PORT)
+
+def send_latent_mean(z_mean):
+	z = z_mean.cpu().numpy()[0]
+	min_z = np.min(z)
+	max_z = np.max(z)
+	if min_z != max_z: # avoid divide by zero
+		z = (z - min_z) / (max_z - min_z) # normalize z	
+	client.send_message(LATENT_MEAN_ADDR,z.tolist())	
 
 def send_init_vals():
 	for p in PARAMS:
