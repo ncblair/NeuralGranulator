@@ -18,7 +18,7 @@ BIT_WIDTH = 4 # Number of bytes in a sample, 1, 2, 3, or 4, 4 = 32bit
 CHANNELS = 1
 
 # CUDA
-USE_CUDA = True
+USE_CUDA = False
 
 # DATA GENERATION
 SILENCE_CUTOFF = 0.05
