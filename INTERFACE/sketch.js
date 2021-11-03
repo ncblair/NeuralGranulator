@@ -83,6 +83,7 @@ class Knob {
 
 	set_val(val) {
 		this.display_value = val
+		this.value = val
 	}
 	
 	pos() {
@@ -273,13 +274,12 @@ function receiveOsc(address, value) {
 		y = value[1]
 		return
 	}
+	// Ehhh should we loop or have a bunch of cases?
 	for (knob of knobs) {
 		if (knob.address === address) {
 			knob.set_val(value[0])
+			break
 		}
-	}
-	if(address == SPREAD_ADDR) {
-		knobs["spread"].set_val(value[0])
 	}
 }
 

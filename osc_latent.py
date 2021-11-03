@@ -118,7 +118,6 @@ def send_init_vals():
 		v = (PARAMS[p]["start_val"] - minn) / (PARAMS[p]["max_val"] - minn)
 		client.send_message(PARAMS[p]["addr"], \
 			v)
-
 send_init_vals()
 
 

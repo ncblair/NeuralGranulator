@@ -176,6 +176,9 @@ async def main_loop():
 
 	circle_pos = np.array([SCREEN_SIZE/2, SCREEN_SIZE/2])
 	z_mean, z = get_latent_vector(circle_pos, PARAMS["spread"]["start_val"])
+	# Send initial z mean
+	osc_latent.client.send_message("/1/latent_mean",z_mean.cpu().numpy()[0].tolist())
+
 	update_audio(z)
 	coords = np.zeros(2)
 	old_coords = np.zeros(2)
@@ -282,7 +285,7 @@ async def main_loop():
 		
 			
 		pygame.display.flip()
-		await asyncio.sleep(0)
+		await asyncio.sleep(0.0)
 
 	# Done! Time to quit.
 	pygame.quit()
