@@ -2,6 +2,10 @@
 
 ### Nathan Blair and Jack Kilgore
 
+### CONTEXT:
+
+Neural Granulator is a synthesizer that generates audio grains using a VAE neural network. Right now, the code is split between python and javascript, and soon will have a c++ implementation as well. Important code is in model.py, granulator.py, main.py, and config.py. GUI stuff has mostly been moved to the "INTERFACE" folder in javascript. 
+
 ### TODO MAT240A:
 
 - get an example plugin compiled with PyTorch "Libtorch" and Juce and export to VST
