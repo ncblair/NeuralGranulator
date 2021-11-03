@@ -21,10 +21,13 @@ class OnMidiInput():
 		message, deltatime = event
 		midi_type, midi_note, midi_velocity = message
 
-		# TODO scale amplitude based on velocity
+		# TODO scale amplitude based on velocity NON-LINEAR
+		midi_velocity = midi_velocity / 127.0 #really naive linear midi to amp conversion
+		# midi_velocity = 40*(math.log10(midi_velocity/127.0))
+		# midi_velocity = pow(10, midi_velocity / 20)
 		# MIDI NOTE ON
 		if midi_type == 144:
-			self.gran.note_on(midi_note)
+			self.gran.note_on(midi_note, midi_velocity)
 		# MIDI NOTE OFF
 		if midi_type == 128:
 			self.gran.note_off(midi_note)
@@ -32,6 +35,7 @@ class OnMidiInput():
 class Voice:
 	def __init__(self, sample_rate):
 		self.note = 60
+		self.amp = 1.0
 		self.trigger = False
 		# Maybe we hold onto a couple of grains that it can be smoothed with? IDfK
 		self.base_grain = None
@@ -64,7 +68,8 @@ class Voice:
 
 
 	# ASSUMES GRAIN EXISTS
-	def note_on(self, note):
+	def note_on(self, note, amp=1.0):
+		self.amp = amp
 		self.pitch_voice(note)
 		self.index_grain = 0
 		self.note = note
@@ -91,7 +96,7 @@ class Voice:
 		g = self.get_smoothed_grain()
 		idx = np.arange(self.index_grain, self.index_grain + frame_count)
 		data = np.take(g, idx, mode="wrap") 
-		env_data = self.env.get_audio_data(frame_count)
+		env_data = self.env.get_audio_data(frame_count) * self.amp
 		data *= env_data
 		# increment envelope and grain index by size
 		self.index_grain = (self.index_grain + frame_count) % len(g)
@@ -175,14 +180,14 @@ class Granulator:
 		if self.midi_input:
 			self.midi_input.close_port()
 
-	def note_on(self, note):
+	def note_on(self, note, amp=1.0):
 		available_voices = [voice for voice in self.voices if not voice.trigger]
 		if len(available_voices) < 1:
 			print("OUT OF VOICES!")
 			return
 		available_voices[0].env.set(self.attack,self.decay,self.sustain,self.release)
 		available_voices[0].set_smooth(self.smooth)
-		available_voices[0].note_on(note)
+		available_voices[0].note_on(note,amp)
 
 	def note_off(self, note):
 		note_on_voices = [voice for voice in self.voices if voice.trigger and voice.note == note]
