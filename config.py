@@ -3,11 +3,11 @@ import os
 
 # PATHS
 PATH = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(PATH, "MODELS", "cpp_ex_model.pt")
-TRACED_MODEL_PATH = os.path.join(PATH, "MODELS", "CPP", "cpp_ex_model.pt")
+MODEL_PATH = os.path.join(PATH, "MODELS", "stft_model.pt")
+TRACED_MODEL_PATH = os.path.join(PATH, "MODELS", "CPP", "stft_model.pt")
 AUDIO_OUT_FOL = os.path.join(PATH, "OUTPUT")
 DATA_PATH = os.path.join(PATH, "DATA")
-EMBEDDINGS_PATH = os.path.join(PATH, "EMBEDDINGS", "cpp_ex_latents.npy")
+EMBEDDINGS_PATH = os.path.join(PATH, "EMBEDDINGS", "stft_latents.npy")
 AUDIO_FOLDER = os.path.join(PATH, "INPUT")
 LABEL_KEYFILE = os.path.join(PATH, "label_mapping.txt")
 
@@ -25,10 +25,10 @@ SILENCE_CUTOFF = 0.05
 
 
 # TRAINING
-EPOCHS = 1000
+EPOCHS = 2000
 LEARNING_RATE = .0001
 LOG_EPOCHS = 10
-CHECKPOINT_EPOCHS = 30
+CHECKPOINT_EPOCHS = 50
 MAX_BETA = 100
 LAMBDA = 3
 MAX_GRAD_NORM = 5

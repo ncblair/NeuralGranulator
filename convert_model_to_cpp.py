@@ -1,5 +1,5 @@
 import numpy as np
-import nsgt
+#import nsgt
 import torch #1.2.0
 import os
 from model import GrainVAE
@@ -14,15 +14,15 @@ num_classes = len(set(latent_y))
 # Prepare inverse NSGT transform
 grain = load_data(DATA_PATH)[0][0]
 grain_length = len(grain)
-scale = nsgt.MelScale(20, 22050, 24)
-transform = nsgt.NSGT(scale, SR, grain_length, real=True, matrixform=True, reducedform=False)
-example_nsgt = transform.forward(grain)
-nsgt_shape = np.array(example_nsgt).shape
-nsgt_length = nsgt_shape[0] * nsgt_shape[1] * 2 # times 2 for complex number
+# scale = nsgt.MelScale(20, 22050, 24)
+# transform = nsgt.NSGT(scale, SR, grain_length, real=True, matrixform=True, reducedform=False)
+# example_nsgt = transform.forward(grain)
+# nsgt_shape = np.array(example_nsgt).shape
+# nsgt_length = nsgt_shape[0] * nsgt_shape[1] * 2 # times 2 for complex number
 
 
 # Load Model
-model = GrainVAE(nsgt_length, use_cuda = USE_CUDA)
+model = GrainVAE(grain_length, use_cuda = USE_CUDA)
 if USE_CUDA:
 	device = torch.device("cuda")
 else:
