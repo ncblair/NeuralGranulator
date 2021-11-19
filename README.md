@@ -8,6 +8,7 @@ Neural Granulator is a synthesizer that generates audio grains using a VAE neura
 
 ### TODO MAT240A:
 
+- fix glitchy audio, implement envelopes, multiple voices, midi, pitching, stereo image, knobs, control interface graphics
 - get an example plugin compiled with PyTorch "Libtorch" and Juce and export to VST
 - run c++ speed tests for the model
 
