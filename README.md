@@ -20,6 +20,14 @@ Neural Granulator is a synthesizer that generates audio grains using a VAE neura
 - make temporally dynamic to differentiate from wavetable
 - ml5.js option
 
+### Completed MAT240A NOV 19:
+ - Built simple granulator in JUCE using a libtorch backend (consider switching to c++/JUCE for performance)
+ - Rebuilt pytorch model to bake in STFT (don't have to worry about it in c++ now)
+ - Model loss now using time domain (something glitchy going on here too, examine lambda-VAE), probably convert back to freq domain
+ - Able to generate random grains in JUCE using libtorch model and loop them. (sound quality is glitchy, something going wrong)
+
+### Completed MAT240A NOV 12:
+ - JUCE and Libtorch run together in standalone app. Print Libtorch Output in JUCE console
 
 ### Completed MAT240A NOV 3:
 
