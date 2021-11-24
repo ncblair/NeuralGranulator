@@ -21,7 +21,7 @@ import numpy as np
 
 ###
 """
-audio --> wavenet encoder --> latent space --> wavenet decoder --> audio
+audio --> STFT --> wavenet encoder --> latent space --> wavenet decoder --> iSTFT --> audio
 """
 ###
 
@@ -30,20 +30,27 @@ class GrainVAE(nn.Module):
 		super(GrainVAE, self).__init__()
 
 		self.grain_length = grain_length
+		self.nfft = 1024;
+		self.stft_length = (self.nfft // 2 + 1) * (self.grain_length // (self.nfft // 4) + 1) * 2
 		self.h_dim = 512 # hidden dimension
 		self.l_dim = 64 # latent dimension
-		self.hidden_layers = 2
+		self.hidden_layers = 3
 		self.sr = 16000
 		self.use_cuda = use_cuda
 
 		# encoder layers
-		self.fc1 = nn.Linear(self.grain_length, self.h_dim)
-		self.hidden_encoders = []
-		for i in range(self.hidden_layers):
-			if self.use_cuda:
-				self.hidden_encoders.append(nn.Linear(self.h_dim, self.h_dim).cuda())
-			else:
-				self.hidden_encoders.append(nn.Linear(self.h_dim, self.h_dim))
+		self.fc1 = nn.Linear(self.stft_length, self.h_dim)
+		# self.hidden_encoders = []
+		# for i in range(self.hidden_layers):
+		# 	if self.use_cuda:
+		# 		self.hidden_encoders.append(nn.Linear(self.h_dim, self.h_dim).cuda())
+		# 	else:
+		# 		self.hidden_encoders.append(nn.Linear(self.h_dim, self.h_dim))
+
+		self.hidden_encoders = torch.nn.Sequential(
+								*sum([[nn.Linear(self.h_dim, self.h_dim), nn.ReLU()]
+								for i in range(self.hidden_layers)], []))
+
 
 		# go from encoder output to latent space
 		self.fc_mu = nn.Linear(self.h_dim, self.l_dim)
@@ -61,7 +68,7 @@ class GrainVAE(nn.Module):
 								*sum([[nn.Linear(self.h_dim, self.h_dim), nn.ReLU()]
 								for i in range(self.hidden_layers)], []))
 
-		self.fc3 = nn.Linear(self.h_dim, self.grain_length)
+		self.fc3 = nn.Linear(self.h_dim, self.stft_length)
 
 		self.log_scale = nn.Parameter(torch.Tensor([0.0]))
 
@@ -96,9 +103,10 @@ class GrainVAE(nn.Module):
 		return elbo, beta*kl_loss.mean(), -reconstruction_loss.mean()
 
 	def encoder(self, x):
+		x = torch.stft(x, self.nfft, return_complex = False)
+		x = torch.flatten(x, 1)
 		x = F.relu(self.fc1(x))
-		for i in range(self.hidden_layers):
-			x = F.relu(self.hidden_encoders[i](x))
+		x = self.hidden_encoders(x)
 		mu, log_var = self.fc_mu(x), self.fc_var(x)
 		return mu, log_var
 
@@ -113,11 +121,14 @@ class GrainVAE(nn.Module):
 		z = F.relu(self.fc2(z))
 		z = self.hidden_decoders(z)
 		z = self.fc3(z)
+		z = z.reshape(z.shape[0], (self.nfft // 2 + 1), (self.grain_length // (self.nfft // 4) + 1), 2)
+		z = torch.istft(z, self.nfft, return_complex=False, length=self.grain_length)
 		return z
 
 	def forward(self, z):
+		z = self.decoder(z)
 		# define forward as just the decoder for tracing into c++
-		return self.decoder(z)
+		return z
 
 	def reconstruction_loss(self, x_hat, x):
 		scale = torch.exp(self.log_scale)
@@ -150,10 +161,10 @@ class GrainVAE(nn.Module):
 		kl = kl.sum(-1)
 		return kl
 
-	def to_complex_repr(self, decoder_out):
-		# put output of decoder back into complex domain
-		decoder_out = decoder_out.cpu().detach().numpy()
-		complex_out = np.zeros((decoder_out.shape[0], decoder_out.shape[1]//2)).astype(np.cdouble)
-		complex_out.real = decoder_out[:, :decoder_out.shape[1]//2]
-		complex_out.imag = decoder_out[:, decoder_out.shape[1]//2:]
-		return complex_out
+	# def to_complex_repr(self, decoder_out):
+	# 	# put output of decoder back into complex domain
+	# 	decoder_out = decoder_out.cpu().detach().numpy()
+	# 	complex_out = np.zeros((decoder_out.shape[0], decoder_out.shape[1]//2)).astype(np.cdouble)
+	# 	complex_out.real = decoder_out[:, :decoder_out.shape[1]//2]
+	# 	complex_out.imag = decoder_out[:, decoder_out.shape[1]//2:]
+	# 	return complex_out

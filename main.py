@@ -4,7 +4,7 @@ import asyncio
 import pygame
 from sklearn.decomposition import PCA
 import numpy as np
-import nsgt
+# import nsgt
 import torch #1.2.0
 import soundfile as sf
 import colorsys
@@ -49,16 +49,14 @@ projections = pca.transform(class_vectors)
 # Prepare inverse NSGT transform
 grain = load_data(DATA_PATH)[0][0]
 grain_length = len(grain)
-scale = nsgt.MelScale(20, 22050, 24)
-transform = nsgt.NSGT(scale, SR, grain_length, real=True, matrixform=True, reducedform=False)
-example_nsgt = transform.forward(grain)
-nsgt_shape = np.array(example_nsgt).shape
-nsgt_length = nsgt_shape[0] * nsgt_shape[1] * 2 # times 2 for complex numberw
-print(nsgt_length);
-import pdb;pdb.set_trace();
+# scale = nsgt.MelScale(20, 22050, 24)
+# transform = nsgt.NSGT(scale, SR, grain_length, real=True, matrixform=True, reducedform=False)
+# example_nsgt = transform.forward(grain)
+# nsgt_shape = np.array(example_nsgt).shape
+# nsgt_length = nsgt_shape[0] * nsgt_shape[1] * 2 # times 2 for complex number
 
 # Load Model
-model = GrainVAE(nsgt_length, use_cuda = USE_CUDA)
+model = GrainVAE(grain_length, use_cuda = USE_CUDA)
 if USE_CUDA:
 	device = torch.device("cuda")
 else:
@@ -104,12 +102,13 @@ def get_latent_vector(pos, variance = 0):
 
 def update_audio(z):
 	# get model nsgt out
-	model_out = model.decoder(z)
-	complex_out = model.to_complex_repr(model_out)
-	nsgts_out = [list(x.reshape(nsgt_shape[0], nsgt_shape[1])) for x in complex_out]
+	model_out = model.forward(z)
+	# complex_out = model.to_complex_repr(model_out)
+	# nsgts_out = [list(x.reshape(nsgt_shape[0], nsgt_shape[1])) for x in complex_out]
 
 	# get audio from nsgt inverse transform batch and sum voices
-	audio_out = np.sum([transform.backward(nsgt) for nsgt in nsgts_out], axis=0)
+	# audio_out = np.sum([transform.backward(nsgt) for nsgt in nsgts_out], axis=0)
+	audio_out = np.sum(model_out.cpu().detach().numpy(), axis=0)
 
 	# normalize audio to help prevent clipping
 	audio_out = audio_out / np.max(np.abs(audio_out)) / 4
@@ -179,7 +178,8 @@ async def main_loop():
 	circle_pos = np.array([SCREEN_SIZE/2, SCREEN_SIZE/2])
 	z_mean, z = get_latent_vector(circle_pos, PARAMS["spread"]["start_val"])
 	# Send initial z mean
-	osc_latent.send_latent_mean(z_mean)
+	if OSC:
+		osc_latent.send_latent_mean(z_mean)
 
 	update_audio(z)
 	coords = np.zeros(2)
