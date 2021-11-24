@@ -47,15 +47,15 @@ void AudioPluginAudioProcessorEditor::buttonClicked (juce::Button* button)
 {
     if (button == &new_grain_button)                                                      // [3]
         {
-            // auto mean = torch::zeros({1, 64});
-            // mean[0][0] = 3;
+            auto mean = torch::zeros({1, 64});
+            mean[0][0] = 3;
             std::vector<torch::jit::IValue> inputs;
-            inputs.push_back(torch::normal(0, 3, {1, 64}));
+            inputs.push_back(torch::normal(0, 1, {1, 64}) + mean);
 
             c10::IValue result = model.forward(inputs);
             auto output = result.toTensor();
-            std::cout<<output.size(0)<<std::endl;
-            std::cout<<output.size(1)<<std::endl;
-            processorRef.granulator.replace_grain(output);
+            //std::cout<<output[0].size(0)<<std::endl;
+
+            processorRef.granulator.replace_grain(output[0]);
         }
 }

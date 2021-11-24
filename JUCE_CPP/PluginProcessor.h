@@ -46,6 +46,10 @@ public:
 
     //===USER DEFINED
     Granulator granulator;
+    juce::Interpolators::Lagrange interpolators[2];
+    double cur_sample_rate;
+    juce::AudioSampleBuffer temp_buffer;
+    
 
 
 private:

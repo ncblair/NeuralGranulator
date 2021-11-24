@@ -13,7 +13,6 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
                      #endif
                        )
 {
-    granulator = Granulator();
 }
 
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor()
@@ -91,6 +90,12 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
     juce::ignoreUnused (sampleRate, samplesPerBlock);
+
+    granulator = Granulator();
+    cur_sample_rate = sampleRate;
+    temp_buffer = juce::AudioSampleBuffer(1, samplesPerBlock * 2);
+    interpolators[0] = juce::Interpolators::Lagrange();
+    interpolators[1] = juce::Interpolators::Lagrange();
 }
 
 void AudioPluginAudioProcessor::releaseResources()
@@ -138,8 +143,13 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     // This is here to avoid people getting screaming feedback
     // when they first compile a plugin, but obviously you don't need to keep
     // this code if your algorithm always overwrites all the output channels.
+    
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
+    
+    if (totalNumOutputChannels > 2) {
+        throw std::runtime_error( "too many output channels" );
+    }
 
     // This is the place where you'd normally do the guts of your plugin's
     // audio processing...
@@ -147,21 +157,33 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     // the samples and the outer loop is handling the channels.
     // Alternatively, you can process the samples with the channels
     // interleaved by keeping the same state.
-    at::Tensor grain_data;
-    
-    grain_data = granulator.audio_callback(buffer.getNumSamples());
-    
 
-    for (int channel = 0; channel < totalNumOutputChannels; ++channel)
-    {
-        auto* channelData = buffer.getWritePointer(channel);
-        juce::ignoreUnused (channelData);
-
-        for (int i = 0; i < buffer.getNumSamples(); ++i)
-        {
-            channelData[i] = grain_data[i].item<float>();
-        }
+    //create temporary buffer
+    int num_samples = ceil(buffer.getNumSamples() * granulator.grain_sample_rate / cur_sample_rate);
+    if (num_samples > temp_buffer.getNumSamples()) {
+        //hope this doesn't happen (allocating in audio thread)
+        temp_buffer.setSize(temp_buffer.getNumChannels(), num_samples);
     }
+
+    //fill temporary buffer with samples from granulator
+    granulator.audio_callback(temp_buffer, num_samples);
+    // resample temporary buffer samples to the sample rate of the output buffer
+
+    for (int c = 0; c < totalNumOutputChannels; ++c) {
+        interpolators[c].process   (granulator.grain_sample_rate / cur_sample_rate, 
+                                    temp_buffer.getReadPointer(0), 
+                                    buffer.getWritePointer(c), 
+                                    buffer.getNumSamples());
+        // auto normalizer = 0;
+        // auto minmax = buffer.findMinMax(c, 0, buffer.getNumSamples());
+        // normalizer = juce::jmax(juce::abs)
+    }
+    
+    
+    // auto temp_points = buffer.getReadPointer(0);
+    // for (int i = 0; i < buffer.getNumSamples(); i++) {
+    //     std::cout<<temp_points[i]<<" ";
+    // }
 }
 
 //==============================================================================
@@ -197,3 +219,4 @@ juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new AudioPluginAudioProcessor();
 }
+
