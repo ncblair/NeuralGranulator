@@ -28,6 +28,12 @@ private:
     torch::jit::script::Module model;
 
     juce::TextButton new_grain_button;
+    juce::Image background_image;
+
+    int window_width;
+    int window_height;
+    const int dev_w = 1440;
+    const int dev_h = 899;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessorEditor)
 };
