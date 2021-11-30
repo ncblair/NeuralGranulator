@@ -8,18 +8,25 @@ Neural Granulator is a synthesizer that generates audio grains using a VAE neura
 
 ### TODO MAT240A:
 
-- fix glitchy audio, implement envelopes, multiple voices, midi, pitching, stereo image, knobs, control interface graphics
+- implement envelopes, multiple voices, midi, pitching, stereo image, knobs, control interface graphics
 - get an example plugin compiled with PyTorch "Libtorch" and Juce and export to VST
 - run c++ speed tests for the model
 
 ### TODO TRANSVERGENCE
 
-- set up hand trackers
-- finish web visualization
-- Hook up all the knobs and start experimenting with different granulator knobs
-- Train on larger Grains
-- make temporally dynamic to differentiate from wavetable
-- ml5.js option
+ - set up hand trackers
+ - finish web visualization
+ - Hook up all the knobs and start experimenting with different granulator knobs
+ - Train on larger Grains
+ - make temporally dynamic to differentiate from wavetable
+ - ml5.js option
+
+### Completed MAT240A NOV 24:
+ - Implement resampling
+ - Audio no longer glitches
+ - Use JUCE buffer as back-end for granulator class operations in the audio thread
+ - No allocation in audio thread
+ - Mostly thread safe (besides one bool assignment)
 
 ### Completed MAT240A NOV 19:
  - Built simple granulator in JUCE using a libtorch backend (consider switching to c++/JUCE for performance)
