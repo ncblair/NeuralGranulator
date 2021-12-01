@@ -6,6 +6,16 @@
 
 Neural Granulator is a synthesizer that generates audio grains using a VAE neural network. Right now, the code is split between python and javascript, and soon will have a c++ implementation as well. Important code is in model.py, granulator.py, main.py, and config.py. GUI stuff has mostly been moved to the "INTERFACE" folder in javascript. 
 
+### Installation / Reproducability (CPP, Windows, cmake):
+ - Download JUCE and add it as a subdirectory of the JUCE_CPP folder
+ - Download cmake (see: https://github.com/juce-framework/JUCE/blob/master/docs/CMake%20API.md)
+ - Download Pytorch for c++ and cmake and add it as a subdirectory of the JUCE_CPP folder (Libtorch, see: https://pytorch.org/cppdocs/installing.html) 
+ - Generate a dataset and train a model in python (alternatively, ask me for one of my models)
+ - Change the code in the PluginEditor.cpp constructor to match the paths on your filesystem.
+ - Build the project (mkdir build; cd build; cmake --build .)
+ - The standalone application will be created in the build/JUCE_CPP_artefacts/Debug/Standalone directory
+ 
+
 ### TODO MAT240A:
 
 - implement envelopes, multiple voices, midi, pitching, stereo image, knobs, control interface graphics
