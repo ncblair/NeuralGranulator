@@ -30,6 +30,11 @@ Neural Granulator is a synthesizer that generates audio grains using a VAE neura
  - Train on larger Grains
  - make temporally dynamic to differentiate from wavetable
  - ml5.js option
+ 
+### Completed MAT240A NOV 31:
+ - Implement custom X/Y slider graphics interface. 
+ - Begin hooking up interface to audio generation
+ - Running into a lot of issues with inheritance and passing information between contexts + generally has been a frustrating week working with JUCE. 
 
 ### Completed MAT240A NOV 24:
  - Implement resampling
