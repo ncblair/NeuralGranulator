@@ -15,16 +15,14 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     window_height = 899;
     setSize (window_width, window_height);
 
-    // grid = XY_slider(300, 300);
-    this->addAndMakeVisible(grid);
-
-    grid.setBounds(300, 300, 300, 300);
+    // grid = XY_slider();
+    addAndMakeVisible(grid);
+    grid.setBounds(130, 252, 507, 507);
 
     model = torch::jit::load("D:\\PROJECTS\\2021_FALL\\013_JUCE_PROGRAM1\\PLUG_CMAKE_TORCH\\MODELS\\stft_model.pt");
     background_image = juce::ImageFileFormat::loadFrom(juce::File("D:\\PROJECTS\\2021_FALL\\013_JUCE_PROGRAM1\\PLUG_CMAKE_TORCH\\IMG\\Layout.png"));
 
     std::cout << "ok\n";
-
 
 }
 
@@ -41,6 +39,7 @@ void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g)
     g.setColour (juce::Colours::white);
     g.setFont (15.0f);
     g.drawImage(background_image, 0, 0, window_width, window_height, 0, 0, dev_w, dev_h); // 1440 x 899 is background_image width
+    //grid.paint(g);
 }
 
 void AudioPluginAudioProcessorEditor::resized()
@@ -55,14 +54,14 @@ void AudioPluginAudioProcessorEditor::buttonClicked (juce::Button* button)
     if (button == &new_grain_button)                                                      // [3]
         {
             auto mean = torch::zeros({1, 64});
-            mean[0][0] = 3;
+            mean[0][0] = 6 * grid.x_val / grid.getWidth() - 3;
+            mean[0][1] = 6 * grid.y_val / grid.getHeight() - 3;
             std::vector<torch::jit::IValue> inputs;
             inputs.push_back(torch::normal(0, 1, {1, 64}) + mean);
 
             c10::IValue result = model.forward(inputs);
             auto output = result.toTensor();
-            //std::cout<<output[0].size(0)<<std::endl;
-
+            
             processorRef.granulator.replace_grain(output[0]);
         }
 }

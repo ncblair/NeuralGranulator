@@ -11,29 +11,44 @@
 
 
 class XY_slider: public juce::Component {
-    // private:
-        
+    private:
+        Granulator gran;
+        torch::jit::script::Module model;
     public:
         int x_val;
         int y_val;
         //void mouseDown(const juce::MouseEvent &event) override;
         //void mouseDrag(const juce::MouseEvent &event) override;
         //void paint(juce::Graphics &g) override;
-        XY_slider(int w, int h) : juce::Component{}{
+        XY_slider(Granulator& g, torch::jit::script::Module& m) : juce::Component{}{
             x_val = 0;
             y_val = 0;
+            gran = g;
+            model = m;
         }
         XY_slider(XY_slider & source) : juce::Component{} {}
         XY_slider(XY_slider && source) : juce::Component{} {}
 
-        void mouseDown(const juce::MouseEvent &event) override{
-            x_val = event.getMouseDownX();
-            y_val = event.getMouseDownY();
+        void mouseDrag(const juce::MouseEvent &event) override{
+            x_val = event.getPosition().getX();
+            y_val = event.getPosition().getY();
+            repaint();
         }
 
-        void mouseDrag(const juce::MouseEvent &event) override {
+        void mouseDown(const juce::MouseEvent &event) override {
             x_val = event.getMouseDownX();
             y_val = event.getMouseDownY();
+            repaint();
+            auto mean = torch::zeros({1, 64});
+            mean[0][0] = 6 * x_val / getWidth() - 3;
+            mean[0][1] = 6 * y_val / getHeight() - 3;
+            std::vector<torch::jit::IValue> inputs;
+            inputs.push_back(torch::normal(0, 1, {1, 64}) + mean);
+
+            c10::IValue result = model.forward(inputs);
+            auto output = result.toTensor();
+            
+            gran.replace_grain(output[0]);
         }
 
         void paint(juce::Graphics &g) override {
@@ -70,7 +85,7 @@ private:
     const int dev_w = 1440;
     const int dev_h = 899;
 
-    XY_slider grid = XY_slider{300, 300};
+    XY_slider grid = XY_slider{processorRef.granulator, model};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessorEditor)
 };
