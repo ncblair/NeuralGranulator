@@ -12,7 +12,13 @@ Neural Granulator is a synthesizer that generates audio grains using a VAE neura
  - Download Pytorch for c++ and cmake and add it as a subdirectory of the JUCE_CPP folder (Libtorch, see: https://pytorch.org/cppdocs/installing.html) 
  - Generate a dataset and train a model in python (alternatively, ask me for one of my models)
  - Change the code in the PluginEditor.cpp constructor to match the paths on your filesystem.
- - Build the project (mkdir build; cd build; cmake --build .)
+ - Build the project 
+```
+mkdir build 
+cd build 
+cmake -DCMAKE_PREFIX_PATH=/absolute/path/to/libtorch ..
+cmake --build .
+```
  - The standalone application will be created in the build/JUCE_CPP_artefacts/Debug/Standalone directory
  
 

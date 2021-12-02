@@ -1,7 +1,6 @@
 #pragma once
 
 #include "PluginProcessor.h"
-#include "xy_slider.cpp"
 
 #include <torch/script.h>
 #include <torch/torch.h>
@@ -44,11 +43,16 @@ class XY_slider: public juce::Component {
             mean[0][1] = 6 * y_val / getHeight() - 3;
             std::vector<torch::jit::IValue> inputs;
             inputs.push_back(torch::normal(0, 1, {1, 64}) + mean);
-
-            c10::IValue result = model.forward(inputs);
-            auto output = result.toTensor();
+            try {
+                c10::IValue result = model.forward(inputs);
+                auto output = result.toTensor();
             
-            gran.replace_grain(output[0]);
+                gran.replace_grain(output[0]);
+            }
+            catch (std::exception &e) {
+                std::cout<<e.what();
+            }
+            
         }
 
         void paint(juce::Graphics &g) override {
