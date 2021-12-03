@@ -40,7 +40,7 @@ class Voice {
             this->needs_update = false; 
         }
 
-        void queue_grain(at::Tensor grain, int note=60) {
+        void queue_grain(const at::Tensor& grain, int note=60) {
             juce::ignoreUnused(note);
             if (grain.size(0) > this->temp_buffer.getNumSamples()) {
                 this->temp_buffer.setSize(this->grain_buffer.getNumChannels(), this->grain_buffer.getNumSamples());
@@ -98,7 +98,7 @@ class Voice {
                 }
             }
         }
-        void tensor_to_buffer(at::Tensor& tensor, juce::AudioSampleBuffer& buffer) {
+        void tensor_to_buffer(const at::Tensor& tensor, juce::AudioSampleBuffer& buffer) {
             for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
             {
                 auto* channelData = buffer.getWritePointer(channel);
@@ -124,7 +124,7 @@ class Granulator {
             voices[0].note_on();
         }
 
-        void replace_grain(at::Tensor& grain) {
+        void replace_grain(const at::Tensor& grain) {
             for (int i = 0; i < voices.size(); ++i) {
                 voices[i].queue_grain(grain);
             }

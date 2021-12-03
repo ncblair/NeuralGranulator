@@ -46,7 +46,7 @@ class XY_slider: public juce::Component {
             try {
                 c10::IValue result = model.forward(inputs);
                 auto output = result.toTensor();
-            
+                
                 gran.replace_grain(output[0]);
             }
             catch (std::exception &e) {
