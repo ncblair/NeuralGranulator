@@ -1,6 +1,8 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
+#include <thread>
+
 //==============================================================================
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAudioProcessor& p)
     : AudioProcessorEditor (&p), processorRef (p)
@@ -15,14 +17,14 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     window_height = 899;
     setSize (window_width, window_height);
 
-    // grid = XY_slider();
-    addAndMakeVisible(grid);
-    grid.setBounds(130, 252, 507, 507);
+    grid = new XY_slider(*this);
+    addAndMakeVisible(*grid);
+    grid->setBounds(130, 252, 507, 507);
 
     // model = torch::jit::load("D:\\PROJECTS\\2021_FALL\\013_JUCE_PROGRAM1\\PLUG_CMAKE_TORCH\\MODELS\\stft_model.pt");
     // background_image = juce::ImageFileFormat::loadFrom(juce::File("D:\\PROJECTS\\2021_FALL\\013_JUCE_PROGRAM1\\PLUG_CMAKE_TORCH\\IMG\\Layout.png"));
 
-    model = torch::jit::load("/Users/ncblair/COMPSCI/NeuralGranulator/JUCE_CPP/MODELS/stft_model.pt");
+    // model = torch::jit::load("/Users/ncblair/COMPSCI/NeuralGranulator/JUCE_CPP/MODELS/stft_model.pt");
     background_image = juce::ImageFileFormat::loadFrom(juce::File("/Users/ncblair/COMPSCI/NeuralGranulator/JUCE_CPP/IMG/Layout.png"));
 
     std::cout << "ok\n";
@@ -56,15 +58,16 @@ void AudioPluginAudioProcessorEditor::buttonClicked (juce::Button* button)
 {
     if (button == &new_grain_button)                                                      // [3]
         {
-            auto mean = torch::zeros({1, 64});
-            mean[0][0] = 6 * grid.x_val / grid.getWidth() - 3;
-            mean[0][1] = 6 * grid.y_val / grid.getHeight() - 3;
-            std::vector<torch::jit::IValue> inputs;
-            inputs.push_back(torch::normal(0, 1, {1, 64}) + mean);
-
-            c10::IValue result = model.forward(inputs);
-            auto output = result.toTensor();
+            // std::cout << "Button Model Dump: " << model.dump_to_str(true, false, false) << std::endl;
+            // auto mean = torch::zeros({1, 64});
+            // mean[0][0] = 6 * grid.x_val / grid.getWidth() - 3;
+            // mean[0][1] = 6 * grid.y_val / grid.getHeight() - 3;
+            // std::vector<torch::jit::IValue> inputs;
+            // inputs.push_back(torch::normal(0, 1, {1, 64}) + mean);
             
-            processorRef.granulator.replace_grain(output[0]);
+            // c10::IValue result = model.forward(inputs);
+            // auto output = result.toTensor();
+            
+            // processorRef.granulator.replace_grain(output[0]);
         }
 }

@@ -13,6 +13,7 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
                      #endif
                        )
 {
+    granulator = Granulator();
 }
 
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor()
@@ -91,7 +92,6 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     // initialisation that you need..
     juce::ignoreUnused (sampleRate, samplesPerBlock);
 
-    granulator = Granulator();
     cur_sample_rate = sampleRate;
     temp_buffer = juce::AudioSampleBuffer(1, samplesPerBlock * 2);
     interpolators[0] = juce::Interpolators::Lagrange();
@@ -159,7 +159,7 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     // interleaved by keeping the same state.
 
     //create temporary buffer
-    int num_samples = ceil(buffer.getNumSamples() * granulator.grain_sample_rate / cur_sample_rate);
+    int num_samples = int(ceil(buffer.getNumSamples() * granulator.grain_sample_rate / cur_sample_rate));
     if (num_samples > temp_buffer.getNumSamples()) {
         //hope this doesn't happen (allocating in audio thread)
         temp_buffer.setSize(temp_buffer.getNumChannels(), num_samples);

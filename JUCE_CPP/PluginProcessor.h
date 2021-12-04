@@ -2,7 +2,7 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
-#include "Granulator.cpp"
+#include "Granulator.h"
 
 //==============================================================================
 class AudioPluginAudioProcessor  : public juce::AudioProcessor
