@@ -158,6 +158,18 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     // Alternatively, you can process the samples with the channels
     // interleaved by keeping the same state.
 
+    // get midi messages;
+    for (const auto metadata : midiMessages) {
+        const auto msg = metadata.getMessage();
+        if (msg.isNoteOn()) {
+            float velocity = float(msg.getVelocity() / 128.0);
+            granulator.note_on(msg.getNoteNumber(), velocity);
+        }
+        else if (msg.isNoteOff()) {
+            granulator.note_off(msg.getNoteNumber());
+        }
+    }
+
     //create temporary buffer
     int num_samples = int(ceil(buffer.getNumSamples() * granulator.grain_sample_rate / cur_sample_rate));
     if (num_samples > temp_buffer.getNumSamples()) {

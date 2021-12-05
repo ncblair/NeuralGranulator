@@ -55,7 +55,7 @@ class ML_thread : public juce::Thread {
         std::atomic<int> w;
         std::atomic<int> h;
         std::atomic<bool> ready_to_update;
-        ML_thread(AudioPluginAudioProcessorEditor& e, const juce::String &threadName) : editor(e), juce::Thread(threadName) {
+        ML_thread(AudioPluginAudioProcessorEditor& e, const juce::String &threadName) : juce::Thread(threadName), editor(e) {
             x = 0;
             y = 0;
             w = 1440;

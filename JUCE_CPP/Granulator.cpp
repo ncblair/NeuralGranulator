@@ -12,10 +12,15 @@ Voice::Voice(double grain_sample_rate) {
     cur_sample = 0;
     grain_sr = grain_sample_rate;
     needs_update = false;
+    note_num_samples = 0;
+    // Allocate 16 second buffer so we can play really low slow grains
+    note_buffer = juce::AudioSampleBuffer(1, juce::roundToInt(grain_sr * 16)); 
+    note_buffer.clear();
     grain_buffer = juce::AudioSampleBuffer(1, juce::roundToInt(grain_sr / 2));
     grain_buffer.clear();
     temp_buffer = juce::AudioSampleBuffer(1, grain_buffer.getNumSamples());
     temp_buffer.clear();
+    interp = juce::Interpolators::Lagrange();
     queue_grain(at::zeros(juce::roundToInt(grain_sr / 2))); // default is voice has empty grain
 }
 
@@ -38,10 +43,28 @@ void Voice::queue_grain(const at::Tensor& grain, int note_number) {
     needs_update = true;
 }
 
-void Voice::note_on() {
+void Voice::note_on(int midinote, float amplitude) {
+    note = midinote;
+    amp = amplitude;
+    cur_sample = 0;
+    //PITCH THE VOICE HERE (or figure that out in a background thread)
+    pitch_voice();
     trigger = true;
 }
 
+void Voice::pitch_voice() {
+    note_num_samples = int(grain_buffer.getNumSamples() / std::pow(2., (note - 60.)/12.));
+    if (note != 60) {
+        interp.process (std::pow(2., (note - 60.)/12.), 
+                    grain_buffer.getReadPointer(0), 
+                    note_buffer.getWritePointer(0), 
+                    note_num_samples);
+    }
+    else {
+        note_buffer.addFrom(0, 0, grain_buffer, 0, 0, note_num_samples);
+    }
+    note_buffer.applyGain(amp);
+}
 void Voice::note_off() {
     trigger = false;
 }
@@ -62,18 +85,20 @@ void Voice::mix_in_voice(juce::AudioSampleBuffer& buffer, int total_samples) {
     }
 
     //total samples is the length of the buffer
+
+    // copy samples from voice grain_buffer to processBlock buffer
     for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
     {
         auto position = 0;
         // go through total_samples while not going out of range of our grain buffer
         while (position < total_samples)
         {
-            auto samples_to_end_of_buffer = grain_buffer.getNumSamples() - cur_sample;
+            auto samples_to_end_of_buffer = note_num_samples - cur_sample;
             auto samples_this_time = juce::jmin (total_samples - position, samples_to_end_of_buffer);
 
             buffer.addFrom (channel,
                             position,
-                            grain_buffer,
+                            note_buffer,
                             channel,
                             cur_sample,                   
                             samples_this_time);                       
@@ -82,7 +107,7 @@ void Voice::mix_in_voice(juce::AudioSampleBuffer& buffer, int total_samples) {
             position += samples_this_time;
             cur_sample += samples_this_time;
 
-            if (cur_sample == grain_buffer.getNumSamples())
+            if (cur_sample == note_num_samples)
                 cur_sample = 0;
         }
     }
@@ -98,13 +123,11 @@ void Voice::tensor_to_buffer(const at::Tensor& tensor, juce::AudioSampleBuffer& 
     }
 }
 
-
 Granulator::Granulator(double local_sr) {
     grain_sample_rate = local_sr;
     for (size_t i = 0; i < voices.size(); ++i) {
         voices[i] = Voice(grain_sample_rate);
     }
-    voices[0].note_on();
 }
 
 void Granulator::replace_grain(const at::Tensor& grain) {
@@ -119,6 +142,23 @@ void Granulator::audio_callback(juce::AudioSampleBuffer& buffer, int total_sampl
     for (size_t i = 0; i < voices.size(); ++i) {
         if (voices[i].trigger) {
             voices[i].mix_in_voice(buffer, total_samples);
+        }
+    }
+}
+
+void Granulator::note_on(int midinote, float amp) {
+    for (size_t i = 0; i < voices.size(); ++i) {
+        if (!voices[i].trigger) {
+            voices[i].note_on(midinote, amp);
+            return;
+        }
+    }
+}
+
+void Granulator::note_off(int midinote) {
+    for (size_t i = 0; i < voices.size(); ++i) {
+        if (voices[i].trigger && voices[i].note == midinote) {
+            voices[i].note_off();
         }
     }
 }
