@@ -9,15 +9,16 @@ class Voice {
         int cur_sample;
         double grain_sr;
         int note_num_samples;
-        juce::AudioSampleBuffer note_buffer;
-        juce::AudioSampleBuffer grain_buffer;
-        juce::AudioSampleBuffer temp_buffer;
+        juce::AudioSampleBuffer note_buffer; // buffer for pitched notes
+        juce::AudioSampleBuffer grain_buffer; // buffer for model output in audio thread
+        juce::AudioSampleBuffer temp_buffer; // buffer for model output in editor thread
         juce::Interpolators::Lagrange interp; //each voice gets its own resampling interpolator
         bool needs_update;
     public:
         int note;
         float amp;
         bool trigger;
+        juce::ADSR env; //each voice gets an adsr envelope
 
         // Constructor
         Voice(double grain_sample_rate=16000);

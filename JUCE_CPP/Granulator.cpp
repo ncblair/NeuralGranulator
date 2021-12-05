@@ -21,6 +21,9 @@ Voice::Voice(double grain_sample_rate) {
     temp_buffer = juce::AudioSampleBuffer(1, grain_buffer.getNumSamples());
     temp_buffer.clear();
     interp = juce::Interpolators::Lagrange();
+    env = juce::ADSR();
+    env.setSampleRate(grain_sample_rate);
+    env.setParameters(juce::ADSR::Parameters(0.1f,1.0f,0.6f,1.0f)); // default adsr parameters
     queue_grain(at::zeros(juce::roundToInt(grain_sr / 2))); // default is voice has empty grain
 }
 
@@ -50,6 +53,8 @@ void Voice::note_on(int midinote, float amplitude) {
     //PITCH THE VOICE HERE (or figure that out in a background thread)
     pitch_voice();
     trigger = true;
+    env.reset();
+    env.noteOn();
 }
 
 void Voice::pitch_voice() {
@@ -66,7 +71,8 @@ void Voice::pitch_voice() {
     note_buffer.applyGain(amp);
 }
 void Voice::note_off() {
-    trigger = false;
+    // trigger release phase of voice
+    env.noteOff();
 }
 
 // internal audio callback. return torch tensor of num_samples_grains
@@ -84,7 +90,8 @@ void Voice::mix_in_voice(juce::AudioSampleBuffer& buffer, int total_samples) {
         update_grain();
     }
 
-    //total samples is the length of the buffer
+
+    //total samples is the length of the audio callback buffer
 
     // copy samples from voice grain_buffer to processBlock buffer
     for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
@@ -94,15 +101,17 @@ void Voice::mix_in_voice(juce::AudioSampleBuffer& buffer, int total_samples) {
         while (position < total_samples)
         {
             auto samples_to_end_of_buffer = note_num_samples - cur_sample;
-            auto samples_this_time = juce::jmin (total_samples - position, samples_to_end_of_buffer);
+            auto samples_this_time = juce::jmin (total_samples - position, samples_to_end_of_buffer); 
 
             buffer.addFrom (channel,
                             position,
                             note_buffer,
                             channel,
                             cur_sample,                   
-                            samples_this_time);                       
+                            samples_this_time); 
 
+            // apply envelope to grain:
+            env.applyEnvelopeToBuffer(buffer, position, samples_this_time);                   
 
             position += samples_this_time;
             cur_sample += samples_this_time;
@@ -110,6 +119,11 @@ void Voice::mix_in_voice(juce::AudioSampleBuffer& buffer, int total_samples) {
             if (cur_sample == note_num_samples)
                 cur_sample = 0;
         }
+    }
+
+    // if envelope is finished releasing, turn off voice and reset envelope
+    if (!env.isActive()) {
+        trigger = false;
     }
 }
 void Voice::tensor_to_buffer(const at::Tensor& tensor, juce::AudioSampleBuffer& buffer) {

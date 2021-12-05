@@ -49,6 +49,9 @@ public:
     juce::Interpolators::Lagrange interpolators[2];
     double cur_sample_rate;
     juce::AudioSampleBuffer temp_buffer;
+
+    // juce::AudioParameterFloat* x_val;
+    // juce::AudioParameterFloat* y_val;
     
 
 

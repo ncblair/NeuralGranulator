@@ -14,6 +14,8 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
                        )
 {
     granulator = Granulator();
+    // addParameter (x_val = new juce::AudioParameterFloat("x", "x", 0.0f, 1.0f, 0.5f));
+    // addParameter (y_val = new juce::AudioParameterFloat("y", "y", 0.0f, 1.0f, 0.5f));
 }
 
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor()
