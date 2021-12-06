@@ -13,7 +13,7 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
                      #endif
                        )
 {
-    granulator = Granulator();
+    // granulator = Granulator();
     // addParameter (x_val = new juce::AudioParameterFloat("x", "x", 0.0f, 1.0f, 0.5f));
     // addParameter (y_val = new juce::AudioParameterFloat("y", "y", 0.0f, 1.0f, 0.5f));
 }
@@ -191,7 +191,11 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         // auto normalizer = 0;
         // auto minmax = buffer.findMinMax(c, 0, buffer.getNumSamples());
         // normalizer = juce::jmax(juce::abs)
+        juce::FloatVectorOperations::clip  (buffer.getWritePointer(c), buffer.getWritePointer(c),
+                                            -1.0f, 1.0f, buffer.getNumSamples());
     }
+
+
     
     
     // auto temp_points = buffer.getReadPointer(0);

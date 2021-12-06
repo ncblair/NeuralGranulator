@@ -12,8 +12,7 @@
 class XY_slider;
 
 //==============================================================================
-class AudioPluginAudioProcessorEditor  : public juce::AudioProcessorEditor, 
-                                        public juce::Button::Listener
+class AudioPluginAudioProcessorEditor  : public juce::AudioProcessorEditor
 {
 public:
     explicit AudioPluginAudioProcessorEditor (AudioPluginAudioProcessor&);
@@ -22,7 +21,6 @@ public:
     //==============================================================================
     void paint (juce::Graphics&) override;
     void resized() override;
-    void buttonClicked (juce::Button* button) override;
 
     AudioPluginAudioProcessor& processorRef;
 
@@ -32,7 +30,6 @@ private:
 
     torch::jit::script::Module model;
 
-    juce::TextButton new_grain_button;
     juce::Image background_image;
 
     int window_width;
@@ -54,11 +51,13 @@ class ML_thread : public juce::Thread {
         std::atomic<float> y; // 0 to 1
         std::atomic<bool> ready_to_update;
         ML_thread(AudioPluginAudioProcessorEditor& e, const juce::String &threadName) : juce::Thread(threadName), editor(e) {
+            at::init_num_threads();
             model = torch::jit::load("/Users/ncblair/COMPSCI/NeuralGranulator/JUCE_CPP/MODELS/stft_model.pt");
             ready_to_update = true;
         }
 
         void gen_new_grain() {
+            auto time = juce::Time::getMillisecondCounter();
             auto mean = torch::zeros({1, 64});
             mean[0][0] = 6. * x - 3.;
             mean[0][1] = 6. * y - 3.;
@@ -67,20 +66,20 @@ class ML_thread : public juce::Thread {
 
             c10::IValue result = model.forward(inputs);
             auto output = result.toTensor();
+            std::cout << "Model Run Time: " << juce::Time::getMillisecondCounter() - time << std::endl;
             
             editor.processorRef.granulator.replace_grain(output[0]);
         }
 
         void run() {
+            std::cout << "ml thread started" << std::endl;
             while (!threadShouldExit()) {
                 if (ready_to_update) {
                     ready_to_update = false;
                     gen_new_grain();
                 }
-                else {
-                    wait(-1);
-                }
             }
+            std::cout << "exit ML thread" << std::endl;
         }
 
 };
@@ -95,7 +94,7 @@ class XY_slider: public juce::Component {
         XY_slider(AudioPluginAudioProcessorEditor& e) : juce::Component{} {
             ready_to_update = true;
             background_thread = new ML_thread(e, "background_thread");
-            background_thread->startThread(0);
+            background_thread->startThread(5);
         }
 
         void mouseDrag(const juce::MouseEvent &event) override{
@@ -115,7 +114,7 @@ class XY_slider: public juce::Component {
             // *background_thread->editor.processorRef.y_val = get_normalized_y(event.getPosition().getY());
             background_thread->ready_to_update = true;
             repaint();
-            background_thread->notify();
+            //background_thread->notify();
         }
 
         float get_normalized_x(int pixel_x) {

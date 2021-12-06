@@ -10,9 +10,6 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     juce::ignoreUnused (processorRef);
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
-    addAndMakeVisible (new_grain_button);
-    new_grain_button.setButtonText ("Gen New Grain");
-    new_grain_button.addListener(this);
     window_width = 1440;
     window_height = 899;
     setSize (window_width, window_height);
@@ -51,23 +48,4 @@ void AudioPluginAudioProcessorEditor::resized()
 {
     // This is generally where you'll want to lay out the positions of any
     // subcomponents in your editor..
-    new_grain_button.setBounds(10, 10, 100, 100);
-}
-
-void AudioPluginAudioProcessorEditor::buttonClicked (juce::Button* button)
-{
-    if (button == &new_grain_button)                                                      // [3]
-        {
-            // std::cout << "Button Model Dump: " << model.dump_to_str(true, false, false) << std::endl;
-            // auto mean = torch::zeros({1, 64});
-            // mean[0][0] = 6 * grid.x_val / grid.getWidth() - 3;
-            // mean[0][1] = 6 * grid.y_val / grid.getHeight() - 3;
-            // std::vector<torch::jit::IValue> inputs;
-            // inputs.push_back(torch::normal(0, 1, {1, 64}) + mean);
-            
-            // c10::IValue result = model.forward(inputs);
-            // auto output = result.toTensor();
-            
-            // processorRef.granulator.replace_grain(output[0]);
-        }
 }

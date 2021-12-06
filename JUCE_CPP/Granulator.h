@@ -2,6 +2,7 @@
 #include <torch/torch.h>
 #include <juce_core/juce_core.h>
 #include <juce_audio_utils/juce_audio_utils.h>
+#include <juce_dsp/juce_dsp.h>
 
 //=========GRANULATOR CLASSES
 class Voice {
@@ -13,17 +14,20 @@ class Voice {
         juce::AudioSampleBuffer grain_buffer; // buffer for model output in audio thread
         juce::AudioSampleBuffer temp_buffer; // buffer for model output in editor thread
         juce::Interpolators::Lagrange interp; //each voice gets its own resampling interpolator
+        // juce::dsp::WindowingFunction<float> window; // each voice gets a triangle window for windowing.
         bool needs_update;
     public:
         int note;
         float amp;
-        bool trigger;
-        juce::ADSR env; //each voice gets an adsr envelope
+        bool key_pressed;
+        bool making_noise;
+        juce::ADSR* env; //each voice gets an adsr envelope pointer
 
         // Constructor
-        Voice(double grain_sample_rate=16000);
-        void update_grain(int note_number=60);
-        void queue_grain(const at::Tensor& grain, int note_number=60);
+        Voice();
+
+        void update_grain();
+        void queue_grain(const at::Tensor& grain);
         void note_on(int midinote, float amplitude=1.0);
         void note_off();
         void pitch_voice();
@@ -37,7 +41,7 @@ class Granulator {
     public:
         double grain_sample_rate;
 
-        Granulator(double local_sr = 16000);
+        Granulator();
         void replace_grain(const at::Tensor& grain);
         void audio_callback(juce::AudioSampleBuffer& buffer, int total_samples);
         void note_on(int midinote, float amplitude);
