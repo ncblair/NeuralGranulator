@@ -83,7 +83,7 @@ class Voice:
 		if self.smooth < 0.0001:
 			grain = self.grain
 		else:
-			grain = self.grain + np.roll(self.grain, math.floor(len(self.grain)*0.5*self.smooth))
+			grain = grain + np.roll(grain, math.floor(len(grain)*0.5*self.smooth))
 		return grain
 
 

@@ -9,10 +9,12 @@
 #include <memory>
 #include <thread>
 
+#define GRAIN_SAMPLE_RATE (16000.0)
+
 class XY_slider;
 
 //==============================================================================
-class AudioPluginAudioProcessorEditor  : public juce::AudioProcessorEditor
+class AudioPluginAudioProcessorEditor  : public juce::AudioProcessorEditor, public juce::Slider::Listener
 {
 public:
     explicit AudioPluginAudioProcessorEditor (AudioPluginAudioProcessor&);
@@ -38,6 +40,17 @@ private:
     const int dev_h = 899;
 
     XY_slider* grid;
+    juce::Slider attack_knob;
+    juce::Slider decay_knob;
+    juce::Slider sustain_knob;
+    juce::Slider release_knob;
+    juce::Label  attack_label;
+    juce::Label  decay_label;
+    juce::Label  sustain_label;
+    juce::Label  release_label;
+
+    void addDefaultKnob(juce::Slider* slider, juce::Label* label);
+    void sliderValueChanged(juce::Slider* slider) override;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessorEditor)
 };
@@ -45,6 +58,8 @@ private:
 class ML_thread : public juce::Thread {
     private: 
         torch::jit::script::Module model;
+        const at::Tensor triangle_window = torch::cat( {torch::linspace(0.0f, 1.0f, GRAIN_SAMPLE_RATE/4), 
+                                                        torch::linspace(1.0f, 0.0f, GRAIN_SAMPLE_RATE/4)});
     public:
         AudioPluginAudioProcessorEditor& editor;
         std::atomic<float> x; // 0 to 1
@@ -65,10 +80,17 @@ class ML_thread : public juce::Thread {
             inputs.push_back(torch::normal(0, .1, {1, 64}) + mean);
 
             c10::IValue result = model.forward(inputs);
-            auto output = result.toTensor();
+            auto output = result.toTensor()[0];
+            // output = triangle_window * output;
+            // auto rolled = torch::roll(output, int(output.size(0)/2));
+            // std::cout << rolled[rolled.size(0)/2] << " " << rolled[rolled.size(0)/2 - 1] << std::endl;
+            // std::cout << rolled[0] << " " << rolled[rolled.size(0) - 1] << std::endl;
+            // std::cout << output[0] << " " << output[output.size(0) - 1] << std::endl;
+            // output = output + rolled;
+            // std::cout << output[0] << " " << output[output.size(0) - 1] << std::endl;
+
             std::cout << "Model Run Time: " << juce::Time::getMillisecondCounter() - time << std::endl;
-            
-            editor.processorRef.granulator.replace_grain(output[0]);
+            editor.processorRef.granulator.replace_grain(output);
         }
 
         void run() {

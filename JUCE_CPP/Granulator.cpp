@@ -6,7 +6,7 @@
 #define GRAIN_SAMPLE_RATE (16000.0)
 
 // Constructor
-// Voice::Voice() : window(size_t(juce::roundToInt(GRAIN_SAMPLE_RATE / 2)), juce::dsp::WindowingFunction<float>::triangular){
+//Voice::Voice() : window(size_t(juce::roundToInt(GRAIN_SAMPLE_RATE / 2)), juce::dsp::WindowingFunction<float>::hann){
 Voice::Voice() {
     note = 60;
     amp = 1.0;
@@ -34,9 +34,9 @@ Voice::Voice() {
     queue_grain(at::zeros(juce::roundToInt(grain_sr / 2))); // default is voice has empty grain
 }
 
-
-
 void Voice::update_grain() {
+    //TODO MAKE GRAIN BLEND IN
+
     // hope this doesn't happen, would only happen if model spits out different sized grains
     if (temp_buffer.getNumSamples() > grain_buffer.getNumSamples()) {
         grain_buffer.setSize(grain_buffer.getNumChannels(), grain_buffer.getNumSamples());
@@ -103,13 +103,6 @@ void Voice::note_off() {
 // }
 
 void Voice::mix_in_voice(juce::AudioSampleBuffer& buffer, int total_samples) {
-    // replace grain in audio thread if we have to
-    //std::cout<<this->needs_update;
-    if (needs_update) {
-        update_grain();
-    }
-
-
     //total samples is the length of the audio callback buffer
 
     // copy samples from voice grain_buffer to processBlock buffer
@@ -119,6 +112,10 @@ void Voice::mix_in_voice(juce::AudioSampleBuffer& buffer, int total_samples) {
         // go through total_samples while not going out of range of our grain buffer
         while (position < total_samples)
         {
+            // replace grain in audio thread if we have to, only when we are at cur_sample = 0 to avoid clicking
+            if (needs_update && cur_sample == 0) {
+                update_grain();
+            }
             auto samples_to_end_of_buffer = note_num_samples - cur_sample;
             auto samples_this_time = juce::jmin (total_samples - position, samples_to_end_of_buffer); 
 
@@ -189,4 +186,13 @@ void Granulator::note_off(int midinote) {
             voices[i].note_off();
         }
     }
+}
+
+void Granulator::setADSR(double attack, double decay, double sustain, double release) {
+    for (size_t i = 0; i < voices.size(); ++i) {
+        voices[i].env->setParameters(juce::ADSR::Parameters(
+            float(attack), float(decay), float(sustain), float(release))
+        );
+    }
+    std::cout << "SET ADSR PARAMS" << std::endl;
 }

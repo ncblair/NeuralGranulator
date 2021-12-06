@@ -14,7 +14,7 @@ class Voice {
         juce::AudioSampleBuffer grain_buffer; // buffer for model output in audio thread
         juce::AudioSampleBuffer temp_buffer; // buffer for model output in editor thread
         juce::Interpolators::Lagrange interp; //each voice gets its own resampling interpolator
-        // juce::dsp::WindowingFunction<float> window; // each voice gets a triangle window for windowing.
+        //juce::dsp::WindowingFunction<float> window; // each voice gets a triangle window for windowing.
         bool needs_update;
     public:
         int note;
@@ -46,4 +46,5 @@ class Granulator {
         void audio_callback(juce::AudioSampleBuffer& buffer, int total_samples);
         void note_on(int midinote, float amplitude);
         void note_off(int midinote);
+        void setADSR(double attack, double decay, double sustain, double release);
 };
