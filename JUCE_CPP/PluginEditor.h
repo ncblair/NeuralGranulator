@@ -32,22 +32,27 @@ private:
 
     torch::jit::script::Module model;
 
-    juce::Image background_image;
+    // juce::Image background_image;
 
     int window_width;
     int window_height;
-    const int dev_w = 1440;
-    const int dev_h = 899;
+    // const int dev_w = 600;
+    // const int dev_h = 400;
+    bool grid_loaded = false;
 
     XY_slider* grid;
     juce::Slider attack_knob;
     juce::Slider decay_knob;
     juce::Slider sustain_knob;
     juce::Slider release_knob;
+    juce::Slider grain_size_knob;
+    juce::Slider mod_knob;
     juce::Label  attack_label;
     juce::Label  decay_label;
     juce::Label  sustain_label;
     juce::Label  release_label;
+    juce::Label  grain_size_label;
+    juce::Label  mod_label;
 
     void addDefaultKnob(juce::Slider* slider, juce::Label* label);
     void sliderValueChanged(juce::Slider* slider) override;
@@ -72,7 +77,7 @@ class ML_thread : public juce::Thread {
         }
 
         void gen_new_grain() {
-            auto time = juce::Time::getMillisecondCounter();
+            // auto time = juce::Time::getMillisecondCounter();
             auto mean = torch::zeros({1, 64});
             mean[0][0] = 6. * x - 3.;
             mean[0][1] = 6. * y - 3.;
@@ -89,7 +94,7 @@ class ML_thread : public juce::Thread {
             // output = output + rolled;
             // std::cout << output[0] << " " << output[output.size(0) - 1] << std::endl;
 
-            std::cout << "Model Run Time: " << juce::Time::getMillisecondCounter() - time << std::endl;
+            // std::cout << "Model Run Time: " << juce::Time::getMillisecondCounter() - time << std::endl;
             editor.processorRef.granulator.replace_grain(output);
         }
 
@@ -106,7 +111,7 @@ class ML_thread : public juce::Thread {
 
 };
 
-class XY_slider: public juce::Component {
+class XY_slider: public juce::Component, public juce::Timer {
     public:
         float x_val;
         float y_val;
@@ -117,6 +122,9 @@ class XY_slider: public juce::Component {
             ready_to_update = true;
             background_thread = new ML_thread(e, "background_thread");
             background_thread->startThread(5);
+            x_val = .5;
+            y_val = .5;
+            startTimer(33);
         }
 
         void mouseDrag(const juce::MouseEvent &event) override{
@@ -126,17 +134,29 @@ class XY_slider: public juce::Component {
         void mouseDown(const juce::MouseEvent &event) override {
             gen_new_grain_if_ready(event);
         }
+        void mouseUp(const juce::MouseEvent &event) override {
+            gen_new_grain_if_ready(event);
+        }
         
         void gen_new_grain_if_ready(const juce::MouseEvent& event) {
-            x_val = get_normalized_x(event.getPosition().getX());
-            y_val = get_normalized_y(event.getPosition().getY());
+            auto x = get_normalized_x(event.getPosition().getX());
+            auto y = get_normalized_y(event.getPosition().getY());
+            auto x_normalized = (x * 2. - 1.)*(1. + 20. / getWidth());
+            auto y_normalized = (y * 2. - 1.)*(1. + 20. / getHeight());
+            auto distance_from_center = std::sqrt(x_normalized * x_normalized + y_normalized * y_normalized);
+            if (distance_from_center > 1.0) {
+                x_normalized = x_normalized / distance_from_center;
+                y_normalized = y_normalized / distance_from_center;
+            }
+            x = (x_normalized/(1. + 20. / getWidth()) + 1.) / (2.);
+            y = (y_normalized/(1. + 20. / getHeight()) + 1.) / (2.);
+            x_val = x;
+            y_val = y;
             background_thread->x = x_val;
             background_thread->y = y_val;
-            // *background_thread->editor.processorRef.x_val = get_normalized_x(event.getPosition().getX());
-            // *background_thread->editor.processorRef.y_val = get_normalized_y(event.getPosition().getY());
             background_thread->ready_to_update = true;
             repaint();
-            //background_thread->notify();
+
         }
 
         float get_normalized_x(int pixel_x) {
@@ -147,8 +167,22 @@ class XY_slider: public juce::Component {
             return float(pixel_y) / float(getHeight());
         }
 
+        void timerCallback() override
+        { 
+            repaint();
+        }
+
         void paint(juce::Graphics &g) override {
-            g.setColour (juce::Colours::yellow);
-            g.drawEllipse (int(x_val * getWidth()), int(y_val * getHeight()), 20, 20, 3);
+            //g.setColour (juce::Colours::yellow);
+            g.setGradientFill(juce::ColourGradient(juce::Colour(100, 100, 155), 0.0f, 0.0f, juce::Colour(200, 200, 255), getWidth(), getHeight()/2., false));
+            g.drawEllipse (1,1, getWidth() - 2, getHeight() - 2, 2);
+            g.drawEllipse (x_val * getWidth() - 10, y_val * getHeight() - 10, 20, 20, 2);
+            auto after_image = std::fmod((juce::Time::getMillisecondCounter() / 75.), 20.);
+            g.setOpacity(1. - after_image/20.);
+            g.drawEllipse (x_val * getWidth() - 10. - after_image / 2., 
+                            y_val * getHeight() - 10. - after_image / 2., 
+                            20 + after_image, 
+                            20 + after_image, 
+                            2);
         }
 };
