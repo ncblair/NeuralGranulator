@@ -49,6 +49,7 @@ class Granulator {
     private:
         std::array<Voice, 12> voices; // 12 = MAX VOICES
     public:
+
         double grain_sample_rate;
 
         Granulator();

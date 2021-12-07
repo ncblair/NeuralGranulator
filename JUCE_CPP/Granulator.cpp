@@ -15,7 +15,6 @@ Voice::Voice() {
     grain_sr = GRAIN_SAMPLE_RATE;
     needs_update = false;
     note_num_samples = 0;
-    std::cout << "CONSTRUCTOR" << std::endl;
     percent_of_grain = 1.0;
     scan_percentage = 0.0;
     key_pressed = false;
@@ -89,14 +88,11 @@ void Voice::note_on(int midinote, float amplitude) {
     key_pressed = true;
     making_noise = true;
     // std::cout << "Pitch Voice Run Time: " << juce::Time::getMillisecondCounter() - time << std::endl;
-    std::cout << "received note on " << midinote << std::endl;
 }
 
 void Voice::pitch_voice() {
     note_num_samples = int(grain_buffer.getNumSamples() / std::pow(2., (note - 60.)/12.));
     
-    std::cout << "note num samples " << note_num_samples << std::endl;
-    std::cout << "percent of grain " << percent_of_grain << std::endl;
     if (note != 60) {
         interp.process (std::pow(2., (note - 60.)/12.), 
                     grain_buffer.getReadPointer(0), 
@@ -115,14 +111,6 @@ void Voice::note_off() {
     key_pressed = false;
     env->noteOff();
 }
-
-// internal audio callback. return torch tensor of num_samples_grains
-// at::Tensor get_audio_data (int num_samples) {
-//     at::Tensor idx = at::arange(cur_sample, cur_sample + num_samples);
-//     idx = idx % grain_data.size(0);
-//     cur_sample = (cur_sample + num_samples) % grain_data.size(0);
-//     return grain_data.take(idx) * amp;
-// }
 
 void Voice::mix_in_voice(juce::AudioSampleBuffer& buffer, int total_samples) {
     //total samples is the length of the audio callback buffer
@@ -164,14 +152,13 @@ void Voice::mix_in_voice(juce::AudioSampleBuffer& buffer, int total_samples) {
             
             // we will apply the envelope to the voice_playback_buffer
             voice_playback_buffer.copyFrom(0, position, note_windowing_buffer, 0, cur_samp_offset, samples_this_time);
-            voice_playback_buffer.addFrom(0, position, note_windowing_buffer, 0, dual_grain_sample_offset, samples_this_time);
+            //voice_playback_buffer.addFrom(0, position, note_windowing_buffer, 0, dual_grain_sample_offset, samples_this_time);
 
             env->applyEnvelopeToBuffer(voice_playback_buffer, position, samples_this_time);
             
             // then we apply the add the enveloped content to the main playback buffer
             // this extra step means we never apply the envelope to our note buffer, which would be destructive
-            buffer.addFrom(0, position, voice_playback_buffer, 0, position, samples_this_time); 
-            
+            buffer.addFrom(0, position, voice_playback_buffer, 0, position, samples_this_time);
             position += samples_this_time;
             cur_sample += samples_this_time;
             cur_samp_offset += samples_this_time;
@@ -214,7 +201,7 @@ void Voice::smooth_grain() {
     //copy note buffer info to note_windowing_buffer
     note_windowing_buffer.copyFrom(0, 0, note_buffer, 0, 0, note_num_samples);
     auto samps_in_grain = int(note_num_samples * percent_of_grain);
-    auto ramp_samples = int(samps_in_grain / 6);
+    auto ramp_samples = int(samps_in_grain / 12.);
     if (ramp_samples == 0) {
         return;
     }
@@ -271,6 +258,7 @@ void Granulator::audio_callback(juce::AudioSampleBuffer& buffer, int total_sampl
 }
 
 void Granulator::note_on(int midinote, float amp) {
+    std::cout << "note on message recieved" << std::endl;
     for (size_t i = 0; i < voices.size(); ++i) {
         if (!voices[i].making_noise) {
             voices[i].note_on(midinote, amp);
@@ -294,7 +282,6 @@ void Granulator::setADSR(double attack, double decay, double sustain, double rel
             float(attack), float(decay), float(sustain), float(release))
         );
     }
-    std::cout << "SET ADSR PARAMS" << std::endl;
 }
 
 void Granulator::set_grain_size(double percent_of_grain) {

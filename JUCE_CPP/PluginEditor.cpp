@@ -75,27 +75,24 @@ void AudioPluginAudioProcessorEditor::addDefaultKnob(juce::Slider* slider, juce:
     slider->setTextBoxStyle(juce::Slider::TextBoxBelow, true, 64, 12);
     slider->setColour(juce::Slider::ColourIds::textBoxTextColourId, juce::Colour(200, 200, 255));
     slider->setColour(juce::Slider::ColourIds::textBoxOutlineColourId, juce::Colour::fromRGBA(0, 0, 0, 0));
-    slider->setColour(juce::Slider::ColourIds::trackColourId, juce::Colour(255, 255, 255));
-    slider->setColour(juce::Slider::ColourIds::thumbColourId, juce::Colour(0, 0, 0));
+    // slider->setColour(juce::Slider::ColourIds::trackColourId, juce::Colour(255, 255, 255));
+    // slider->setColour(juce::Slider::ColourIds::thumbColourId, juce::Colour(0, 0, 0));
     slider->addListener(this);
     addAndMakeVisible(*label);
     label->attachToComponent(slider, false);
     label->setColour(juce::Label::ColourIds::textColourId, juce::Colour(200, 200, 255)); 
     slider->setColour(juce::Slider::ColourIds::trackColourId, juce::Colour(0, 0, 0));
-    // slider->setLookAndFeel(ju)
+    slider->setLookAndFeel (&knob_look);
+    slider->setSkewFactor(0.5);
+    // label->setNumDecimalPlacesToDisplay(3);
 }
 
 //==============================================================================
 void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g)
 {
-    // (Our component is opaque, so we must completely fill the background with a solid colour)
-    //g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
-
-    g.setGradientFill(juce::ColourGradient(juce::Colour(0, 0, 30), 290.0f, 200.0f, juce::Colour(15, 15, 35), 390.0f, 225.0f, false));
+    g.setGradientFill(juce::ColourGradient(juce::Colour(0, 0, 50), 150.0f, 200.0f, juce::Colour(15, 15, 75), 490.0f, 225.0f, false));
     g.fillAll();
     g.setFont (15.0f);
-    //g.drawImage(background_image, 0, 0, window_width, window_height, 0, 0, dev_w, dev_h); // 1440 x 899 is background_image width
-    //grid.paint(g);
 }
 
 void AudioPluginAudioProcessorEditor::resized()
@@ -119,25 +116,10 @@ void AudioPluginAudioProcessorEditor::resized()
 void AudioPluginAudioProcessorEditor::sliderValueChanged (juce::Slider* slider)
 {
     processorRef.granulator.setADSR(attack_knob.getValue(), decay_knob.getValue(), sustain_knob.getValue(), release_knob.getValue());
-    if (slider == &attack_knob){
-        std::cout << "attack: " << slider->getValue() << std::endl;
-
-    } 
-    else if (slider == &decay_knob) {
-        std::cout << "decay: " << slider->getValue() << std::endl;
-    }
-    else if (slider == &sustain_knob) {
-        std::cout << "sustain: " << slider->getValue() << std::endl;
-    }
-    else if (slider == &release_knob) {
-        std::cout << "release: " << slider->getValue() << std::endl;
-    }
-    else if (slider == &grain_size_knob) {
-        std::cout << "grain size: " << slider->getValue() << std::endl;
+    if (slider == &grain_size_knob) {
         processorRef.granulator.set_grain_size(grain_size_knob.getValue());
     }
-    else if (slider == &scan_knob) {
-        std::cout << "grain size: " << slider->getValue() << std::endl;
+    if (slider == &scan_knob) {
         processorRef.granulator.set_scan(scan_knob.getValue());
     }
 }

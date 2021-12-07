@@ -13,6 +13,49 @@
 
 class XY_slider;
 
+// CLASS ADOPTED FROM THIS TUTORIAL: https://docs.juce.com/master/structSlider_1_1LookAndFeelMethods.html
+class KnobLook : public juce::LookAndFeel_V4
+{
+public:
+    void drawRotarySlider (juce::Graphics& g, int x, int y, int width, int height, float sliderPos,
+                           const float rotaryStartAngle, const float rotaryEndAngle, juce::Slider&) override
+    {
+        auto radius = (float) juce::jmin (width / 2, height / 2) - 4.0f;
+        auto centreX = (float) x + (float) width  * 0.5f;
+        auto centreY = (float) y + (float) height * 0.5f;
+        auto rx = centreX - radius;
+        auto ry = centreY - radius;
+        auto rw = radius * 2.0f;
+        auto angle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
+
+        // fill
+        g.setColour (juce::Colours::orange);
+        g.fillEllipse (rx, ry, rw, rw);
+
+        // outline
+        g.setColour (juce::Colours::red);
+        g.drawEllipse (rx, ry, rw, rw, 1.0f);
+
+        juce::Path p;
+        auto pointerLength = radius * 0.33f;
+        auto pointerThickness = 2.0f;
+        p.addRectangle (-pointerThickness * 0.5f, -radius, pointerThickness, pointerLength);
+        p.applyTransform (juce::AffineTransform::rotation (angle).translated (centreX, centreY));
+
+        // pointer
+        g.setColour (juce::Colours::yellow);
+        g.fillPath (p);
+    }
+};
+
+class CustomKnob : public juce::Slider {
+    juce::String getTextFromValue(double value) {
+        std::stringstream ss;
+        ss << std::fixed << std::setprecision(3) << value;
+        return juce::String(ss.str());
+    }
+};
+
 //==============================================================================
 class AudioPluginAudioProcessorEditor  : public juce::AudioProcessorEditor, public juce::Slider::Listener
 {
@@ -41,18 +84,20 @@ private:
     bool grid_loaded = false;
 
     XY_slider* grid;
-    juce::Slider attack_knob;
-    juce::Slider decay_knob;
-    juce::Slider sustain_knob;
-    juce::Slider release_knob;
-    juce::Slider grain_size_knob;
-    juce::Slider scan_knob;
+    CustomKnob attack_knob;
+    CustomKnob decay_knob;
+    CustomKnob sustain_knob;
+    CustomKnob release_knob;
+    CustomKnob grain_size_knob;
+    CustomKnob scan_knob;
     juce::Label  attack_label;
     juce::Label  decay_label;
     juce::Label  sustain_label;
     juce::Label  release_label;
     juce::Label  grain_size_label;
     juce::Label  scan_label;
+
+    KnobLook knob_look;
 
     void addDefaultKnob(juce::Slider* slider, juce::Label* label);
     void sliderValueChanged(juce::Slider* slider) override;
@@ -63,8 +108,8 @@ private:
 class ML_thread : public juce::Thread {
     private: 
         torch::jit::script::Module model;
-        const at::Tensor triangle_window = torch::cat( {torch::linspace(0.0f, 1.0f, GRAIN_SAMPLE_RATE/4), 
-                                                        torch::linspace(1.0f, 0.0f, GRAIN_SAMPLE_RATE/4)});
+        const at::Tensor normal = torch::normal(0, .1, {1, 64}) + .5;
+
     public:
         AudioPluginAudioProcessorEditor& editor;
         std::atomic<float> x; // 0 to 1
@@ -79,32 +124,25 @@ class ML_thread : public juce::Thread {
         void gen_new_grain() {
             // auto time = juce::Time::getMillisecondCounter();
             auto mean = torch::zeros({1, 64});
-            mean[0][0] = 6. * x - 3.;
-            mean[0][1] = 6. * y - 3.;
+            // mean[0] = 3.5;
+            // mean[1] = 1;
+            mean[0][0] = 6. * x + .5;
+            mean[0][1] = 6. * y + .5;
+            // mean[0][2] = 4. * x + 2;
+            // mean[0][4] = 4. * y + 2;
             std::vector<torch::jit::IValue> inputs;
-            inputs.push_back(torch::normal(0, .1, {1, 64}) + mean);
+            inputs.push_back(normal + mean);
 
             c10::IValue result = model.forward(inputs);
             auto output = result.toTensor()[0];
 
-            // NORMALIZE GRAIN ???
+            // NORMALIZE GRAIN ??? Might not need to with better model
             float max = *at::max(at::abs(output)).data_ptr<float>();
             if (max > 0.0) { //dont divide by 0
-                // std::cout << "max " << max << std::endl;
                 output = output / max; 
                 output = output / 2.0;
             }
-            //END NORMALIZE GRAIN ???
-
-            output = triangle_window * output;
-            // auto rolled = torch::roll(output, int(output.size(0)/2));
-            // std::cout << rolled[rolled.size(0)/2] << " " << rolled[rolled.size(0)/2 - 1] << std::endl;
-            // std::cout << rolled[0] << " " << rolled[rolled.size(0) - 1] << std::endl;
-            // std::cout << output[0] << " " << output[output.size(0) - 1] << std::endl;
-            // output = output + rolled;
-            // std::cout << output[0] << " " << output[output.size(0) - 1] << std::endl;
-
-            // std::cout << "Model Run Time: " << juce::Time::getMillisecondCounter() - time << std::endl;
+            //END NORMALIZE GRAIN
             editor.processorRef.granulator.replace_grain(output);
         }
 
@@ -194,5 +232,15 @@ class XY_slider: public juce::Component, public juce::Timer {
                             20 + after_image, 
                             20 + after_image, 
                             2);
+            
+            // for (int i = 0; i < background_thread->editor.processorRef.granulator.voices.size(); ++i) {
+            //     if (background_thread->editor.processorRef.granulator.voices[i].making_noise) {
+            //         g.drawEllipse (.5 * getWidth() - 20 - after_image, 
+            //                         .5 * getHeight() - 20 - after_image, 
+            //                         40 + after_image*2, 
+            //                         40 + after_image*2, 
+            //                         2);                    
+            //     }
+            // }
         }
 };
