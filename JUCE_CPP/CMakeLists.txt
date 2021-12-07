@@ -109,6 +109,7 @@ target_link_libraries(PlugCmakeTorch
     PRIVATE
         # AudioPluginData           # If we'd created a binary data target, we'd link to it here
         juce::juce_audio_utils
+        juce::juce_dsp
         torch
     PUBLIC
         juce::juce_recommended_config_flags

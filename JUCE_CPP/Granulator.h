@@ -12,18 +12,21 @@ class Voice {
         double grain_sr;
         int note_num_samples;
         juce::AudioSampleBuffer voice_playback_buffer; // to apply envelopes non-destructively
+        juce::AudioSampleBuffer note_windowing_buffer; // to apply windowing non-destructively
         juce::AudioSampleBuffer note_buffer; // buffer for pitched notes
+        // juce::AudioSampleBuffer next_note_buffer; //buffer for next note
         juce::AudioSampleBuffer grain_buffer; // buffer for model output in audio thread
         juce::AudioSampleBuffer temp_buffer; // buffer for model output in editor thread
         juce::Interpolators::Lagrange interp; //each voice gets its own resampling interpolator
-        //juce::dsp::WindowingFunction<float> window; // each voice gets a triangle window for windowing.
         bool needs_update;
+        bool needs_ramp;
     public:
         int note;
         float amp;
         bool key_pressed;
         bool making_noise;
         juce::ADSR* env; //each voice gets an adsr envelope pointer
+        //juce::dsp::WindowingFunction<float> window;
         double percent_of_grain;
         double scan_percentage;
 
@@ -37,6 +40,9 @@ class Voice {
         void pitch_voice();
         void mix_in_voice(juce::AudioSampleBuffer& buffer, int total_samples);
         void tensor_to_buffer(const at::Tensor& tensor, juce::AudioSampleBuffer& buffer);
+        void set_scan_percentage(double scan_percent);
+        void set_percent_grain(double percent_grain);
+        void smooth_grain();
 };
 
 class Granulator {
