@@ -11,12 +11,18 @@ Voice::Voice() {
     note = 60;
     amp = 1.0;
     cur_sample = 0;
+    cur_samp_offset = 0;
     grain_sr = GRAIN_SAMPLE_RATE;
     needs_update = false;
     note_num_samples = 0;
+    percent_of_grain = 1.0;
+    scan_percentage = 0.0;
     key_pressed = false;
     making_noise = false;
 
+    // voice playback buffer probably only needs to be a few hundred samples long
+    voice_playback_buffer = juce::AudioSampleBuffer(1, juce::roundToInt(grain_sr / 2)); 
+    voice_playback_buffer.clear();
     // Allocate 16 second buffer so we can play really low slow grains
     note_buffer = juce::AudioSampleBuffer(1, juce::roundToInt(grain_sr * 16)); 
     note_buffer.clear();
@@ -58,6 +64,7 @@ void Voice::queue_grain(const at::Tensor& grain) {
         std::cout << "resize temp buffer" << std::endl;
         temp_buffer.setSize(grain_buffer.getNumChannels(), grain_buffer.getNumSamples());
     }
+
     tensor_to_buffer(grain, temp_buffer);
     needs_update = true;
 }
@@ -72,11 +79,14 @@ void Voice::note_on(int midinote, float amplitude) {
     env->noteOn();
     key_pressed = true;
     making_noise = true;
-    //std::cout << "Pitch Voice Run Time: " << juce::Time::getMillisecondCounter() - time << std::endl;
+    // std::cout << "Pitch Voice Run Time: " << juce::Time::getMillisecondCounter() - time << std::endl;
+    std::cout << "received note on " << midinote << std::endl;
 }
 
 void Voice::pitch_voice() {
     note_num_samples = int(grain_buffer.getNumSamples() / std::pow(2., (note - 60.)/12.));
+    std::cout << "note num samples " << note_num_samples << std::endl;
+    std::cout << "percent of grain " << percent_of_grain << std::endl;
     if (note != 60) {
         interp.process (std::pow(2., (note - 60.)/12.), 
                     grain_buffer.getReadPointer(0), 
@@ -106,6 +116,10 @@ void Voice::mix_in_voice(juce::AudioSampleBuffer& buffer, int total_samples) {
     //total samples is the length of the audio callback buffer
 
     // copy samples from voice grain_buffer to processBlock buffer
+    // std::cout << "START CUR SAMPLE " << cur_sample << std::endl;
+    auto num_samples_in_grain = int(note_num_samples * percent_of_grain);
+    auto sample_offset = int(note_num_samples * scan_percentage);
+    cur_samp_offset = (sample_offset + cur_sample) % note_num_samples;
     for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
     {
         auto position = 0;
@@ -116,30 +130,43 @@ void Voice::mix_in_voice(juce::AudioSampleBuffer& buffer, int total_samples) {
             if (needs_update && cur_sample == 0) {
                 update_grain();
             }
-            auto samples_to_end_of_buffer = note_num_samples - cur_sample;
+            auto samples_to_end_of_buffer = note_num_samples - cur_samp_offset;
+            auto samples_to_end_of_grain = num_samples_in_grain - cur_sample;
             auto samples_this_time = juce::jmin (total_samples - position, samples_to_end_of_buffer); 
+            samples_this_time = juce::jmin(samples_this_time, samples_to_end_of_grain);
 
-            env->applyEnvelopeToBuffer(note_buffer, cur_sample, samples_this_time);
-
-            buffer.addFrom (channel,
-                            position,
-                            note_buffer,
-                            channel,
-                            cur_sample,                   
-                            samples_this_time); 
+            // this will probably never happen
+            if (samples_this_time > voice_playback_buffer.getNumSamples()) {
+                std::cout << "resize voice playback buffer" << std::endl;
+                voice_playback_buffer.setSize(grain_buffer.getNumChannels(), samples_this_time);
+            }
             
+            // we will apply the envelope to the voice_playback_buffer
+            voice_playback_buffer.copyFrom(0, position, note_buffer, 0, cur_samp_offset, samples_this_time);
 
+            env->applyEnvelopeToBuffer(voice_playback_buffer, position, samples_this_time);
+            
+            // then we apply the add the enveloped content to the main playback buffer
+            // this extra step means we never apply the envelope to our note buffer, which would be destructive
+            buffer.addFrom (0, position, voice_playback_buffer, 0, position, samples_this_time); 
+            
             position += samples_this_time;
             cur_sample += samples_this_time;
+            cur_samp_offset += samples_this_time;
 
-            if (cur_sample == note_num_samples) {
-                cur_sample = 0;
+            if (cur_samp_offset == note_num_samples) {
+                cur_samp_offset = cur_samp_offset % note_num_samples;
             }
+            if (cur_sample == num_samples_in_grain) {
+                cur_sample = 0;
+                cur_samp_offset = sample_offset;
+            }
+            
         }
     }
 
     if (!env->isActive()) {
-        making_noise = false; // free to replace this voice with a new pitch!
+        making_noise = false; // free to assign a new note to this voice!!
     }
 }
 void Voice::tensor_to_buffer(const at::Tensor& tensor, juce::AudioSampleBuffer& buffer) {
@@ -195,4 +222,16 @@ void Granulator::setADSR(double attack, double decay, double sustain, double rel
         );
     }
     std::cout << "SET ADSR PARAMS" << std::endl;
+}
+
+void Granulator::set_grain_size(double percent_of_grain) {
+    for (size_t i = 0; i < voices.size(); ++i) {
+        voices[i].percent_of_grain = percent_of_grain;
+    }
+}
+
+void Granulator::set_scan(double scan_percentage) {
+    for (size_t i = 0; i < voices.size(); ++i) {
+        voices[i].scan_percentage = scan_percentage;
+    }
 }

@@ -8,8 +8,10 @@
 class Voice {
     private:
         int cur_sample;
+        int cur_samp_offset;
         double grain_sr;
         int note_num_samples;
+        juce::AudioSampleBuffer voice_playback_buffer; // to apply envelopes non-destructively
         juce::AudioSampleBuffer note_buffer; // buffer for pitched notes
         juce::AudioSampleBuffer grain_buffer; // buffer for model output in audio thread
         juce::AudioSampleBuffer temp_buffer; // buffer for model output in editor thread
@@ -22,6 +24,8 @@ class Voice {
         bool key_pressed;
         bool making_noise;
         juce::ADSR* env; //each voice gets an adsr envelope pointer
+        double percent_of_grain;
+        double scan_percentage;
 
         // Constructor
         Voice();
@@ -47,4 +51,6 @@ class Granulator {
         void note_on(int midinote, float amplitude);
         void note_off(int midinote);
         void setADSR(double attack, double decay, double sustain, double release);
+        void set_grain_size(double percent_of_grain);
+        void set_scan(double scan_percentage);
 };

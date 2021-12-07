@@ -46,13 +46,13 @@ private:
     juce::Slider sustain_knob;
     juce::Slider release_knob;
     juce::Slider grain_size_knob;
-    juce::Slider mod_knob;
+    juce::Slider scan_knob;
     juce::Label  attack_label;
     juce::Label  decay_label;
     juce::Label  sustain_label;
     juce::Label  release_label;
     juce::Label  grain_size_label;
-    juce::Label  mod_label;
+    juce::Label  scan_label;
 
     void addDefaultKnob(juce::Slider* slider, juce::Label* label);
     void sliderValueChanged(juce::Slider* slider) override;
@@ -86,7 +86,17 @@ class ML_thread : public juce::Thread {
 
             c10::IValue result = model.forward(inputs);
             auto output = result.toTensor()[0];
-            // output = triangle_window * output;
+
+            // NORMALIZE GRAIN ???
+            float max = *at::max(at::abs(output)).data_ptr<float>();
+            if (max > 0.0) { //dont divide by 0
+                // std::cout << "max " << max << std::endl;
+                output = output / max; 
+                output = output / 2.0;
+            }
+            //END NORMALIZE GRAIN ???
+
+            output = triangle_window * output;
             // auto rolled = torch::roll(output, int(output.size(0)/2));
             // std::cout << rolled[rolled.size(0)/2] << " " << rolled[rolled.size(0)/2 - 1] << std::endl;
             // std::cout << rolled[0] << " " << rolled[rolled.size(0) - 1] << std::endl;

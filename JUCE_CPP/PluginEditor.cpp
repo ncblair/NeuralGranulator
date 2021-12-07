@@ -25,7 +25,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     addDefaultKnob(&sustain_knob, &sustain_label);
     addDefaultKnob(&release_knob, &release_label);
     addDefaultKnob(&grain_size_knob, &grain_size_label);
-    addDefaultKnob(&mod_knob, &mod_label);
+    addDefaultKnob(&scan_knob, &scan_label);
 
     // attack_knob.setBounds(1059, 512, 64, 76);
     // decay_knob.setBounds(1214, 512, 64, 76);
@@ -38,14 +38,21 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     sustain_label.setText("Sustain", juce::dontSendNotification);
     release_label.setText("Release", juce::dontSendNotification);
     grain_size_label.setText("Grain Size", juce::dontSendNotification);
-    mod_label.setText("Grain Spread", juce::dontSendNotification);
+    scan_label.setText("Grain Scan", juce::dontSendNotification);
 
-    attack_knob.setValue(0.5);
-    decay_knob.setValue(0.5);
-    sustain_knob.setValue(0.5);
-    release_knob.setValue(0.5);
-    grain_size_knob.setValue(0.5);
-    mod_knob.setValue(0.5);
+    attack_knob.setRange(0.001, 1.0);
+    decay_knob.setRange(0.001, 1.0);
+    sustain_knob.setRange(0.001, 1.0);
+    release_knob.setRange(0.001, 1.0);
+    grain_size_knob.setRange(0.001, 1.0);
+    scan_knob.setRange(0.0, 1.0);
+
+    attack_knob.setValue(0.05);
+    decay_knob.setValue(0.3);
+    sustain_knob.setValue(1.0);
+    release_knob.setValue(1.0);
+    grain_size_knob.setValue(1.0);
+    scan_knob.setValue(0.0);
 
     // model = torch::jit::load("D:\\PROJECTS\\2021_FALL\\013_JUCE_PROGRAM1\\PLUG_CMAKE_TORCH\\MODELS\\stft_model.pt");
     // background_image = juce::ImageFileFormat::loadFrom(juce::File("D:\\PROJECTS\\2021_FALL\\013_JUCE_PROGRAM1\\PLUG_CMAKE_TORCH\\IMG\\Layout.png"));
@@ -64,7 +71,6 @@ void AudioPluginAudioProcessorEditor::addDefaultKnob(juce::Slider* slider, juce:
     slider->setSliderStyle(juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag);
     slider->setRotaryParameters(-2.356f, 2.356f, 1);
     addAndMakeVisible(*slider);
-    slider->setRange(0.0, 1.0);
     // slider->setTextValueSuffix (" ms");
     slider->setTextBoxStyle(juce::Slider::TextBoxBelow, true, 64, 12);
     slider->setColour(juce::Slider::ColourIds::textBoxTextColourId, juce::Colour(200, 200, 255));
@@ -106,7 +112,7 @@ void AudioPluginAudioProcessorEditor::resized()
     sustain_knob.setBounds(int(7. * w / 10.), int(7*h / 16.), int(w/10.), int(7.*w/60.));
     release_knob.setBounds(int(8. * w / 10.), int(7*h / 16.), int(w/10.), int(7.*w/60.));
     grain_size_knob.setBounds(int(7. * w / 10.), int(11.*h / 16.), int(w/10.), int(7.*w/60.));
-    mod_knob.setBounds(int(8. * w / 10.), int(11.*h / 16.), int(w/10.), int(7.*w/60.));
+    scan_knob.setBounds(int(8. * w / 10.), int(11.*h / 16.), int(w/10.), int(7.*w/60.));
     
 }
 
@@ -125,5 +131,13 @@ void AudioPluginAudioProcessorEditor::sliderValueChanged (juce::Slider* slider)
     }
     else if (slider == &release_knob) {
         std::cout << "release: " << slider->getValue() << std::endl;
+    }
+    else if (slider == &grain_size_knob) {
+        std::cout << "grain size: " << slider->getValue() << std::endl;
+        processorRef.granulator.set_grain_size(grain_size_knob.getValue());
+    }
+    else if (slider == &scan_knob) {
+        std::cout << "grain size: " << slider->getValue() << std::endl;
+        processorRef.granulator.set_scan(scan_knob.getValue());
     }
 }
