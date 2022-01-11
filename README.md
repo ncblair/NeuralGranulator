@@ -2,7 +2,7 @@
 
 ### Nathan Blair and Jack Kilgore
 
-### CONTEXT:
+### About:
 
 Neural Granulator is a synthesizer that generates audio grains using a VAE neural network. The JUCE VST code can be found in the JUCE_CPP folder. This repository also contains older python/javascript implementations and python code for training the neural network.
 
