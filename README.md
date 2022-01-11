@@ -14,7 +14,7 @@ Neural Granulator is a synthesizer that generates audio grains using a VAE neura
  - Download Pytorch for c++ and cmake and add it as a subdirectory of the JUCE_CPP folder (Libtorch, see: https://pytorch.org/get-started/locally/, https://pytorch.org/cppdocs/installing.html) 
  - Download my torch model and put it in the JUCE_CPP/MODELS folder: https://drive.google.com/drive/folders/1hArulZDVrHTwexb-3Rt_8E9h5abi2d5d?usp=sharing (alternatively, generate a dataset and train a model in python)
  - Change the code in the PluginEditor.cpp constructor to match the paths on your filesystem.
- - Build the project 
+ - Build the project
 ```
 mkdir build 
 cd build 
@@ -23,12 +23,15 @@ cmake --build .
 ```
  - The standalone application will be created in the build/JUCE_CPP_artefacts/Debug/Standalone directory
  - On macOS this code will also build a VST. The windows VST implementation is currently not working. 
+
+![Alt text](neural_gran_diagram.png?raw=true "The diagram flow chart neural granulator")
  
 ### TODO JAN 11 2022:
 - Collect new dataset(s) for grain generation. Guitar Loops, Plucked synth loops, Drum loops, and Spoken word/Soundtrack data are all of interest. 
 - Train a new model – Change model architecture. Consult my AI-inclined friends on this and look through papers
 - Look into asynchronous granulation and grain clouds implementation. Is that desirable for this instrument? A spray parameter + number of grains could be interesting. Is this computationally feasible?
 - Fix segfaults by making program thread-safe
+- Implement graphical envelopes, implement grain envelope and note envelope. 
 
 ### Completed Dec 2021:
 - implement envelopes, multiple voices, midi, pitching, knobs, control interface graphics
