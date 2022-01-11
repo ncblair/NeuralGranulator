@@ -108,7 +108,6 @@ private:
 class ML_thread : public juce::Thread {
     private: 
         torch::jit::script::Module model;
-        const at::Tensor normal = torch::normal(0, .1, {1, 64}) + .5;
 
     public:
         AudioPluginAudioProcessorEditor& editor;
@@ -126,8 +125,9 @@ class ML_thread : public juce::Thread {
             auto mean = torch::zeros({1, 64});
             // mean[0] = 3.5;
             // mean[1] = 1;
-            mean[0][0] = 6. * x + .5;
-            mean[0][1] = 6. * y + .5;
+            at::Tensor normal = torch::normal(0, .1, {1, 64});
+            mean[0][0] = 6. * x - 3;
+            mean[0][1] = 6. * y - 3;
             // mean[0][2] = 4. * x + 2;
             // mean[0][4] = 4. * y + 2;
             std::vector<torch::jit::IValue> inputs;

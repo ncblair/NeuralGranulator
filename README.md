@@ -4,9 +4,11 @@
 
 ### CONTEXT:
 
-Neural Granulator is a synthesizer that generates audio grains using a VAE neural network. Right now, the code is split between python and javascript, and soon will have a c++ implementation as well. Important code is in model.py, granulator.py, main.py, and config.py. GUI stuff has mostly been moved to the "INTERFACE" folder in javascript. 
+Neural Granulator is a synthesizer that generates audio grains using a VAE neural network. The JUCE VST code can be found in the JUCE_CPP folder. This repository also contains older python/javascript implementations and python code for training the neural network.
 
-### Installation / Reproducability (CPP, Windows, cmake):
+![Alt text](interface.png?raw=true "The Current Plug-In Interface")
+
+### Installation / Reproducability (CPP, cmake):
  - Download JUCE and add it as a subdirectory of the JUCE_CPP folder
  - Download cmake (see: https://github.com/juce-framework/JUCE/blob/master/docs/CMake%20API.md)
  - Download Pytorch for c++ and cmake and add it as a subdirectory of the JUCE_CPP folder (Libtorch, see: https://pytorch.org/get-started/locally/, https://pytorch.org/cppdocs/installing.html) 
@@ -20,7 +22,18 @@ cmake -DCMAKE_PREFIX_PATH=/absolute/path/to/libtorch ..
 cmake --build .
 ```
  - The standalone application will be created in the build/JUCE_CPP_artefacts/Debug/Standalone directory
+ - On macOS this code will also build a VST. The windows VST implementation is currently not working. 
  
+### TODO JAN 11 2022:
+- Collect new dataset(s) for grain generation. Guitar Loops, Plucked synth loops, Drum loops, and Spoken word/Soundtrack data are all of interest. 
+- Train a new model – Change model architecture. Consult my AI-inclined friends on this and look through papers
+- Look into asynchronous granulation and grain clouds implementation. Is that desirable for this instrument? A spray parameter + number of grains could be interesting. Is this computationally feasible?
+- Fix segfaults by making program thread-safe
+
+### Completed Dec 2021:
+- implement envelopes, multiple voices, midi, pitching, knobs, control interface graphics
+- Built custom UI features including 2D circular XY Slider
+- Ran speed tests for model (5-10 ms to generate a grain)
 
 ### TODO MAT240A:
 

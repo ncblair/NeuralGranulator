@@ -152,7 +152,7 @@ void Voice::mix_in_voice(juce::AudioSampleBuffer& buffer, int total_samples) {
             
             // we will apply the envelope to the voice_playback_buffer
             voice_playback_buffer.copyFrom(0, position, note_windowing_buffer, 0, cur_samp_offset, samples_this_time);
-            //voice_playback_buffer.addFrom(0, position, note_windowing_buffer, 0, dual_grain_sample_offset, samples_this_time);
+            voice_playback_buffer.addFrom(0, position, note_windowing_buffer, 0, dual_grain_sample_offset, samples_this_time);
 
             env->applyEnvelopeToBuffer(voice_playback_buffer, position, samples_this_time);
             
@@ -201,7 +201,8 @@ void Voice::smooth_grain() {
     //copy note buffer info to note_windowing_buffer
     note_windowing_buffer.copyFrom(0, 0, note_buffer, 0, 0, note_num_samples);
     auto samps_in_grain = int(note_num_samples * percent_of_grain);
-    auto ramp_samples = int(samps_in_grain / 12.);
+    auto ramp_samples = int(samps_in_grain / 6.);
+    // ramp_samples = 0;
     if (ramp_samples == 0) {
         return;
     }
