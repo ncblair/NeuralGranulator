@@ -116,25 +116,28 @@ class ML_thread : public juce::Thread {
         std::atomic<bool> ready_to_update;
         ML_thread(AudioPluginAudioProcessorEditor& e, const juce::String &threadName) : juce::Thread(threadName), editor(e) {
             at::init_num_threads();
-            model = torch::jit::load("/Users/ncblair/COMPSCI/NeuralGranulator/JUCE_CPP/MODELS/stft_model.pt");
+            std::cout << "Attempting load model" << std::endl;
+            model = torch::jit::load("/Users/ncblair/COMPSCI/NeuralGranulator/JUCE_CPP/MODELS/rave_nylon_guitar_01.ts");
             ready_to_update = true;
         }
 
         void gen_new_grain() {
             // auto time = juce::Time::getMillisecondCounter();
-            auto mean = torch::zeros({1, 64});
+            auto mean = torch::zeros({1, 32, 1});
             // mean[0] = 3.5;
             // mean[1] = 1;
-            at::Tensor normal = torch::normal(0, .1, {1, 64});
+            at::Tensor normal = torch::normal(0, .1, {1, 32, 1});
             mean[0][0] = 6. * x - 3;
             mean[0][1] = 6. * y - 3;
             // mean[0][2] = 4. * x + 2;
             // mean[0][4] = 4. * y + 2;
             std::vector<torch::jit::IValue> inputs;
             inputs.push_back(normal + mean);
+            std::cout << "Attempt Gen New Grain " << std::endl;
 
-            c10::IValue result = model.forward(inputs);
-            auto output = result.toTensor()[0];
+            auto result = model.run_method("decode", normal + mean);
+            std::cout << "TENSOR SIZE " << result.toTensor().dim() << std::endl;
+            auto output = result.toTensor()[0][0];
 
             // NORMALIZE GRAIN ??? Might not need to with better model
             float max = *at::max(at::abs(output)).data_ptr<float>();

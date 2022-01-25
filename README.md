@@ -25,13 +25,28 @@ cmake --build .
  - On macOS this code will also build a VST. The windows VST implementation is currently not working. 
 
 ![Alt text](neural_gran_diagram.png?raw=true "The diagram flow chart neural granulator")
- 
+
+### TODO Jan 25 2022: 
+- Get model running with current code and generating nice sounds not just noise and bleeps.
+- Redo code with my new knowledge of JUCE. Potentially start a new branch/codebase
+- Implement ExpoDec and RexpoDec envelopes, asynchronous grains. 
+- New interface for grain exploration and interpolation - potentially even allow users to embed their samples?
+
+### Completed Jan 25 2022:
+- Collected a dataset from Splice for grain generation and trained a RAVE model
+- Run RAVE model from within JUCE code - Challenge: it's not quite working yet.
+- Spoke to Jack Kilgore, went through Emission control code
+- Reached out to potential additional advisors - no bites yet, but some good recomendations. 
+- Built 3 practice VST synths in JUCE - built better understanding of JUCE. 
+- Built practice max for live granulator - better understanding of granulation
+
 ### TODO JAN 11 2022:
 - Collect new dataset(s) for grain generation. Guitar Loops, Plucked synth loops, Drum loops, and Spoken word/Soundtrack data are all of interest. 
 - Train a new model – Change model architecture. Consult my AI-inclined friends on this and look through papers
 - Look into asynchronous granulation and grain clouds implementation. Is that desirable for this instrument? A spray parameter + number of grains could be interesting. Is this computationally feasible?
 - Fix segfaults by making program thread-safe
-- Implement graphical envelopes, implement grain envelope and note envelope. 
+- Implement graphical envelopes, implement grain envelope and note envelope.  (expodec, gaussian, rexpodec, and interpolations (see emission control / jack))
+- Timbre Space Paper (David Wessel CNMAT) – Bring this theory up to date. 
 
 ### Completed Dec 2021:
 - implement envelopes, multiple voices, midi, pitching, knobs, control interface graphics

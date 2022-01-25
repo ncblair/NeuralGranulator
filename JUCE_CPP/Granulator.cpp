@@ -3,7 +3,7 @@
 #include <math.h>
 
 #include "Granulator.h"
-#define GRAIN_SAMPLE_RATE (16000.0)
+#define GRAIN_SAMPLE_RATE (48000.0)
 
 // Constructor
 //Voice::Voice() : window(size_t(juce::roundToInt(GRAIN_SAMPLE_RATE / 2)), juce::dsp::WindowingFunction<float>::WindowingMethod::hann){
